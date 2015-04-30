@@ -77,7 +77,7 @@ int _write(int file, char *ptr, int len)
 	                        if (*ptr == 0) break;
 
 	                        //USART_SendData(USART2, (uint16_t) (*ptr));
-	                        lcd_putchar((*ptr));
+	                        //lcd_putchar((*ptr));
 	                        /* Loop until the end of transmission */
 
 	                        //while (USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET);
