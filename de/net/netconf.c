@@ -101,7 +101,7 @@ void LwIP_Init(void)
   iptab[3] = IP_ADDR0;
 
  // sprintf((char*)iptxt, "  %d.%d.%d.%d", iptab[3], iptab[2], iptab[1], iptab[0]);
-  ShellPrintf("\r\n Static IP address =  %d.%d.%d.%d\r\n", iptab[3], iptab[2], iptab[1], iptab[0]);
+  //ShellPrintf("\r\n Static IP address =  %d.%d.%d.%d\r\n", iptab[3], iptab[2], iptab[1], iptab[0]);
 
 //  LCD_DisplayStringLine(Line8, (uint8_t*)"  Static IP address   ");
 //  LCD_DisplayStringLine(Line9, iptxt);

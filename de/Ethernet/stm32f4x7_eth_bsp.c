@@ -77,7 +77,7 @@ void ETH_BSP_Config(void)
 
   if (EthInitStatus == 0) {
 
-	ShellPrintf("\r\n  Ethernet Init failed !!! \r\n");
+	//ShellPrintf("\r\n  Ethernet Init failed !!! \r\n");
 
 	//LCD_SetTextColor(LCD_COLOR_RED);
     //LCD_DisplayStringLine(Line5, (uint8_t*)"   Ethernet Init   ");
