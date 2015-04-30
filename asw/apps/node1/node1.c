@@ -7,8 +7,6 @@ void sqrtCallback(const Message* msg)
 	// Get data from msg.
 	int32_t num = *((int32_t*)msg->data);
 	// Set data for msg to be published.
-	Msg m;
-	m.data;
 	*((float*)sqrt_pub->msg->data) = (float)sqrt((double)*((int32_t*)msg->data));
 	os_printf("Sqrt of %d: %d", num, (long)*((float*)sqrt_pub->msg->data));
 	// Publish msg to "sqrt" topic.
