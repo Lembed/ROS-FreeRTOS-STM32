@@ -37,23 +37,6 @@ extern "C"
 #include "tasks/LEDTask.h"
 #include "tasks/ROSMainTask.h"
 
-class MyTask : public Task
-{
-public:
-	MyTask(char const*name, unsigned portBASE_TYPE priority, unsigned portSHORT stackDepth)
-: Task(name, priority, stackDepth, &task) {}
-	static void task(void* p)
-	{
-		ros::Node n;
-		for(;;)
-		{
-			n.print();
-			delayMillis(500);
-		}
-	}
-};
-
-
 /*-----------------------------------------------*/
 /* we need this "forklift" task to let OS run before other interrupts corrupt the scheduler */
 /*-----------------------------------------------*/
@@ -67,8 +50,6 @@ extern "C" void MainTask(void* args)
 
 	ROSMainTask ros("ROS Main", 2, 128);
 	LEDTask ledTask("LED", 2, 128);
-	MyTask t("Cpp", 2, 128);
-
     vTaskDelete(NULL);
 }
 
