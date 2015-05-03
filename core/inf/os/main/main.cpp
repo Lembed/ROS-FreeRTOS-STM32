@@ -1,45 +1,63 @@
-
-/*********************************************************/
-/* This a sample for making use of lwIP stack together with
- * freeRTOS
- *
- * including some parameterization of tasks and set up of shell
- *
- * Amos Albert (BOSP/PAA)   Initial version 23.12.2014
- */
-/*********************************************************/
-
-/* includes of RTOS */
-	#include "FreeRTOS.h"
-	#include "task.h"
-	#include "timers.h"
-	#include "semphr.h"
-
-	#include "stm32f4_discovery.h"
-/* includes of task parameterizations */
-	#include "main.h"
-
-/**
-  * @brief  Toggle Led4 task
-  * @param  pvParameters not used
-  * @retval None
-  */
-void ToggleLed4(void * pvParameters)
-{
-	for( ;; ) {
-		/* toggle LED4 each 250ms */
-        STM_EVAL_LEDToggle(LED4);
-        vTaskDelay(250);
-      }
+#include "Node.h"
+/*extern "C" int __aeabi_atexit(void *obj, void (*dtr)(void *), void *dso_h) {
+    (void) obj;
+    (void) dtr;
+    (void) dso_h;
+    return 0;
 }
 
-/*-----------------------------------------------------------*/
-/*  definition of semaphores */
-/*-----------------------------------------------------------*/
-xSemaphoreHandle xSemaphore = NULL;
+void *__dso_handle = 0;
 
-#include "ros.h"
-int Maintask(void)
+extern "C" void __cxa_pure_virtual() {
+        while (1)
+                ;
+}
+
+namespace __gnu_cxx {
+
+void __verbose_terminate_handler() {
+        while(1)
+                ;
+}
+
+}*/
+#include "Task.h"
+extern "C"
+{
+	void ETH_BSP_Config();
+	void LwIP_Init();
+
+	void delayMillis(unsigned long millis)
+	{
+		vTaskDelay(millis);
+	}
+
+	void SystemInit();
+}
+#include "tasks/LEDTask.h"
+#include "tasks/ROSMainTask.h"
+
+class MyTask : public Task
+{
+public:
+	MyTask(char const*name, unsigned portBASE_TYPE priority, unsigned portSHORT stackDepth)
+: Task(name, priority, stackDepth, &task) {}
+	static void task(void* p)
+	{
+		ros::Node n;
+		for(;;)
+		{
+			n.print();
+			delayMillis(500);
+		}
+	}
+};
+
+
+/*-----------------------------------------------*/
+/* we need this "forklift" task to let OS run before other interrupts corrupt the scheduler */
+/*-----------------------------------------------*/
+extern "C" void MainTask(void* args)
 {
     /* configure Ethernet (GPIOs, clocks, MAC, DMA) */
     ETH_BSP_Config();
@@ -47,40 +65,21 @@ int Maintask(void)
     /* Initialize the LwIP stack */
 	LwIP_Init();
 
-	/* Start toogleLed4 task : Toggle LED4  every 250ms */
-    xTaskCreate(ToggleLed4, "LED4", configMINIMAL_STACK_SIZE, NULL, LED_TASK_PRIO, NULL);
-    //xTaskCreate(os_main, "OS_Main", configMINIMAL_STACK_SIZE*4, NULL, LED_TASK_PRIO, NULL);
-    xTaskCreate(ros_main, "OS_Main", configMINIMAL_STACK_SIZE*4, NULL, LED_TASK_PRIO, NULL);
+	ROSMainTask ros("ROS Main", 2, 128);
+	LEDTask ledTask("LED", 2, 128);
+	MyTask t("Cpp", 2, 128);
 
-    //xTaskCreate( Shell_DMA_Check, "ShlDMA", TSK_Shell_DMA_Check_STACK_SIZE,  NULL, TSK_Shell_DMA_Check_PRIO, NULL );
-
-    vTaskDelete(NULL); // kill yourself
+    vTaskDelete(NULL);
 }
 
-
-/*-----------------------------------------------*/
-/* we need this "forklift" task to let OS run before other interrupts corrupt the scheduler */
-/*-----------------------------------------------*/
-
-int main(void) {
-
-	/* Setup STM32 system (clock, PLL and Flash configuration) */
+int main()
+{
 	SystemInit();
-	/* Setup the UART */
-    //USART_Configuration();
-    //USART3_DMA_Config();
-
-    /*Initialize LED  */
-    STM_EVAL_LEDInit(LED4);
-
-    /* forklift task */
-	xTaskCreate(Maintask, (const signed portCHAR *)"MAIN", configMINIMAL_STACK_SIZE*4, NULL, 1, NULL);
+	xTaskCreate(MainTask, (const signed char*)"MainTask", 1024, NULL, 1, NULL);
 	vTaskStartScheduler();
+	return 0;
 }
-
-
-/*-----------------------------------------------------------*/
-
+extern "C"
 void vApplicationMallocFailedHook( void )
 {
 	/* vApplicationMallocFailedHook() will only be called if
@@ -97,7 +96,7 @@ void vApplicationMallocFailedHook( void )
 	for( ;; );
 }
 /*-----------------------------------------------------------*/
-
+extern "C"
 void vApplicationIdleHook( void )
 {
 	/* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
@@ -111,7 +110,7 @@ void vApplicationIdleHook( void )
 	memory allocated by the kernel to any task that has since been deleted. */
 }
 /*-----------------------------------------------------------*/
-
+extern "C"
 void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName )
 {
 	( void ) pcTaskName;
@@ -123,5 +122,4 @@ void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName 
 	taskDISABLE_INTERRUPTS();
 	for( ;; );
 }
-
 
