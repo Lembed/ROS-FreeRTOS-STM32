@@ -6,12 +6,7 @@
 #include "timers.h"
 #include "semphr.h"
 
-
-
-void ros_main(void* params);
 void os_printf(const char* fmt, ...);
-void os_print_float(float f);
-void os_sprint_float(char* str, float f);
 void* os_malloc(unsigned int size);
 
 
