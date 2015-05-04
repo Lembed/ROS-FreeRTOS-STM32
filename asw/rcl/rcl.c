@@ -184,7 +184,7 @@ void subscriberCallbackTask(void* params)
 }
 
 
-void spin(Node* node) // a function of rcl
+void spin(Node* node)
 {
     char taskName[32];
 
@@ -197,23 +197,33 @@ void spin(Node* node) // a function of rcl
 
         it = it->next;
     }
+    vTaskDelete(NULL);
+}
 
-    /*it = node->publishers;
+void spinLoop(Node* node, void (*callback)(void), unsigned int period)
+{
+    char taskName[32];
+
+    ListItem* it = node->subscribers;
     while (it != NULL)
     {
-    	Publisher* pub = (Publisher*)it->object;
-		sprintf(taskName, "publisher_%s_%s", node->name, pub->topicName);
-		xTaskCreate(publisherTimerTask, taskName, 128, (void*) pub, tskIDLE_PRIORITY + 2, NULL);
+    	Subscriber* sub = (Subscriber*)it->object;
+		sprintf(taskName, "subscriber_%s_%s", node->name, sub->topicName);
+		xTaskCreate(subscriberCallbackTask, taskName, 1024, (void*) sub, tskIDLE_PRIORITY + 2, NULL);
 
         it = it->next;
-    }*/
+    }
+	LOOP(period,
+	// start while
+	callback();
+	// end while
+	)
 }
 
 ListItem emptyListHead;
 
 ListItem* getSubscribers(const char* topic)
 {
-	//ListItem* subscribers = os_malloc(sizeof(ListItem));
 	ListItem* subscribers = &emptyListHead;
 	subscribers->object = NULL;
 	subscribers->next = NULL;

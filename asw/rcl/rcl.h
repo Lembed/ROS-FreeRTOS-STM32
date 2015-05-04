@@ -88,4 +88,5 @@ Publisher* createPublisher(Node* node, const char* topic_name, MessageType msg_t
 void publish(Publisher* publisher);
 Subscriber* createSubscriber(Node* node, const char* topic_name, MessageType msg_type, void (*callback)(const Message* msg));
 void spin(Node* node);
+void spinNode(Node* node, void (*callback)(void), unsigned int period);
 ListItem* getSubscribers(const char* topic);

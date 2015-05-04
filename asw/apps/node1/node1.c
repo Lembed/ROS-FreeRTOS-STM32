@@ -12,23 +12,18 @@ void sqrtCallback(const Message* msg)
 	// Publish msg to "sqrt" topic.
 	publish(sqrt_pub);
 }
+unsigned long counter = 0;
+void myloop()
+{
+	counter++;
+	os_printf("Counter:%d\n", counter);
+}
 
 void node1(void* params)
 {
 	Node* node = createNode("nodeB"); // Register node with the name 'nodeB' in RCL.
 	sqrt_pub = createPublisher(node, "sqrt", RCL_MSG_TYPE_FLOAT); // Advertise to "sqrt" topic.
 	Subscriber* sub = createSubscriber(node, "sub", RCL_MSG_TYPE_UINT32, sqrtCallback); // Subscribe to "sub" topic.
-	spin(node); // Spin node for being able to receive subscriber callbacks.
+	spinLoop(node, myloop, 250); // Spin node for being able to receive subscriber callbacks and run loop with period of 250ms.
 
-	unsigned long counter = 0;
-	// Periodic code goes here.
-	// First argument: Period.
-	// Second argument periodic code.
-	// Note: A periodic loop must always be included.
-	LOOP(250,
-	// start while
-	counter++;
-	os_printf("Counter:%d\n", counter);
-	// end while
-	)
 }

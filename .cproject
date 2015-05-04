@@ -429,7 +429,13 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="rcl|lwip|he|de|core|asw" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="asw"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="core"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="de"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="he"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="lwip"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="rcl"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

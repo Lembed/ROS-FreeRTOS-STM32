@@ -32,17 +32,7 @@ void node2(void* params)
 	Node* node = createNode("nodeC"); // Register node with the name 'nodeC' in RCL.
 	square_pub = createPublisher(node, "squared", RCL_MSG_TYPE_FLOAT); // Advertise to "squared" topic.
 	Subscriber* sub = createSubscriber(node, "sqrt", RCL_MSG_TYPE_FLOAT, squareCallback); // Subscribe to "sqrt" topic.
-	spin(node); //--> TASK DELETE
-    //spinLoop(node, loop2, 25);
 
+    spinLoop(node, loop2, 250);
 
-	unsigned long counter = 0;
-	// Periodic code goes here.
-	// First argument: Period.
-	// Second argument periodic code.
-	// Note: A periodic loop must always be included.
-	LOOP(250,
-	// start while
-	// end while
-	)
 }
