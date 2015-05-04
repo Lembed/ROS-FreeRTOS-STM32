@@ -34,8 +34,20 @@ extern "C"
 
 	void SystemInit();
 }
-#include "tasks/LEDTask.h"
-#include "tasks/ROSMainTask.h"
+extern void ros_main(void*);
+
+
+#include "stm32f4_discovery.h"
+
+void led_task(void* p)
+{
+	STM_EVAL_LEDInit(LED4);
+	for( ;; ) {
+			// toggle LED4 each 250ms
+	        STM_EVAL_LEDToggle(LED4);
+	        vTaskDelay(250);
+	      }
+}
 
 /*-----------------------------------------------*/
 /* we need this "forklift" task to let OS run before other interrupts corrupt the scheduler */
@@ -48,8 +60,9 @@ extern "C" void MainTask(void* args)
     /* Initialize the LwIP stack */
 	LwIP_Init();
 
-	ROSMainTask ros("ROS Main", 2, 128);
-	LEDTask ledTask("LED", 2, 128);
+	xTaskCreate(ros_main, (const signed char*)"ROSMain", 128, NULL, 2, NULL);
+	xTaskCreate(led_task, (const signed char*)"LedTask", 128, NULL, 2, NULL);
+
     vTaskDelete(NULL);
 }
 

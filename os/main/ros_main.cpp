@@ -1,21 +1,16 @@
-#include <tasks/ROSMainTask.h>
 /* includes of RTOS */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
 #include "semphr.h"
-
 extern "C"
 {
 #include "application_tasks.h"
 #include "ros.h"
 #include "rcl.h"
 #include "transport.h"
-}
 #include <string.h>
 
-extern "C"
-{
 int serialize_int32(Message* msg, unsigned char *outbuffer);
 int deserialize_int32(Message* msg, unsigned char *inbuffer);
 int serialize_float32(Message* msg, unsigned char *outbuffer);
@@ -74,12 +69,15 @@ void InitNodesTask(void* params)
 	vTaskDelete(NULL);
 }
 
-ROSMainTask::ROSMainTask(char const*name, unsigned portBASE_TYPE priority, unsigned portSHORT stackDepth)
-: Task(name, priority, stackDepth, &task) {}
-
-
-void ROSMainTask::task(void* p)
+#include "std_msgs/Int32.h"
+using namespace std_msgs;
+unsigned char buffer[30];
+void ros_main(void* p)
 {
+	Int32 msg, msg2;
+
+	msg.data = 3;
+	msg2.data = 0;
 	tr_init();
 
 	xTaskCreate(RXTask, (const signed char*)"RXTask", 1024, NULL, tskIDLE_PRIORITY + 3, NULL);
@@ -88,7 +86,11 @@ void ROSMainTask::task(void* p)
     xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 	while(1)
 	{
-		vTaskDelay(60000);
+		msg.serialize(buffer);
+		msg2.deserialize(buffer);
+
+		os_printf("Num: %s %d\n", buffer, msg2.data);
+		vTaskDelay(1000);
 	}
     vTaskDelete(NULL);
 }
