@@ -10,12 +10,12 @@ extern "C"
 #include "rcl.h"
 #include "transport.h"
 #include <string.h>
-
-int serialize_int32(Message* msg, unsigned char *outbuffer);
-int deserialize_int32(Message* msg, unsigned char *inbuffer);
-int serialize_float32(Message* msg, unsigned char *outbuffer);
-int deserialize_float32(Message* msg, unsigned char *inbuffer);
 }
+
+#include "Node.h"
+#include "Subscriber.h"
+#include "Publisher.h"
+
 
 extern "C"
 void RXTask(void* params)
@@ -26,6 +26,8 @@ void RXTask(void* params)
 
 		tr_take_msg(msg, NULL); // block until msg sequence arrives.
 
+
+
 		int topicLen = (int)msg[0];
 	    char topic[topicLen+1];
 	    memcpy(topic, &msg[1], topicLen);
@@ -33,27 +35,32 @@ void RXTask(void* params)
 
 		//void *new_msg;
 		//tr_extract_msg(topic, msg, new_msg);
-		ListItem* subscribers = getSubscribers(topic);
+	    /*os_printf("topic\n");
+	    //os_printf("topic:%s\n", ((ros::Subscriber_*) ros::Subscriber_::list[0])->topic);
+	    vTaskDelay(4);
+	    continue;*/
 
-	    //Node* node = Nodes[0];
-	    //ListItem* subscribers = node->subscribers;
-		while(subscribers != NULL)
+		// TODO: Why does RXTask crash/block the OS if remote PC is already publishing at the time STM32 is started?
+	    for (unsigned int i=0; i<MAX_SUBSCRIBERS; i++)
 		{
-			Subscriber* sub = (Subscriber*) subscribers->object;
+			ros::Subscriber_* sub = (ros::Subscriber_*) ros::Subscriber_::list[i];
 			//if (sub != NULL)
-			if (sub != NULL && !strcmp(topic, sub->topicName))
+			if (sub != NULL && !strcmp(topic, sub->topic))
 			{
 				if (xSemaphoreTake(sub->dataAccess, 0)) // proceed only if the previous subscriber callback function has finished working on the message.
 				{
-					if (sub->msg->type == RCL_MSG_TYPE_UINT32)
-						deserialize_int32(sub->msg, &msg[1+topicLen]);
-					else if (sub->msg->type == RCL_MSG_TYPE_FLOAT)
-						deserialize_float32(sub->msg, &msg[1+topicLen]);
+					//os_printf("Topic: %s\n", sub->topic);
+					sub->deserialize(&msg[1+topicLen]);
+
 					// in order not to block the RX task, tell the subscriber task (by signaling) to call its callback instead of calling the callback directly.
 					xSemaphoreGive(sub->signal);
 				}
+				//os_printf("Topic: %s\n", sub->topic);
 			}
-			subscribers = subscribers->next;
+			else
+			{
+				vTaskDelay(4);
+			}
 		}
 	}
 }
@@ -70,27 +77,42 @@ void InitNodesTask(void* params)
 }
 
 #include "std_msgs/Int32.h"
+#include "std_msgs/Float32.h"
+
 using namespace std_msgs;
 unsigned char buffer[30];
+
+void mycallback(const Int32& msg)
+{
+	os_printf("My Callback: %d\n", msg.data);
+}
+
+
+char taskName[32];
 void ros_main(void* p)
 {
-	Int32 msg, msg2;
-
-	msg.data = 3;
-	msg2.data = 0;
 	tr_init();
-
 	xTaskCreate(RXTask, (const signed char*)"RXTask", 1024, NULL, tskIDLE_PRIORITY + 3, NULL);
 
     vTaskDelay(5000); // TODO: Replace this sleep with semaphore signals to make sure network etc. has been setup successfully.
-    xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
+	Float32 msg, msg2;
+	ros::Node* n = new ros::Node("node");
+	ros::Publisher* pub = new ros::Publisher;
+	pub->advertise<Float32>(n, "sqrt");
+	ros::Subscriber<Int32>* sub = new ros::Subscriber<Int32>(n, "sub", mycallback);
+
+	msg.data = 4.6f;
+	msg2.data = 4.5f;
+
+    /*xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 	while(1)
 	{
 		msg.serialize(buffer);
 		msg2.deserialize(buffer);
+		pub->publish(msg2);
 
 		os_printf("Num: %s %d\n", buffer, msg2.data);
 		vTaskDelay(1000);
-	}
+	}*/
     vTaskDelete(NULL);
 }

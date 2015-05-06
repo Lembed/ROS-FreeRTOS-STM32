@@ -13,6 +13,8 @@ Software for distributing nodes in a multi-node ROS system on FreeRTOS. Currentl
 
 ### TODO:
 - Create C++ classes for RCL instead of using C functions.
-- Copy rosserial C++ message headers into project for arbitrary message serialization. (Also, make use of C++ templates here)
 - Instead of having a rosserver, try sending XMLRPC requests and interact with the ROS master on desktop directly.
-- Try and find out how to make use of https://github.com/ros2/ros2_embedded_freertos, which is a Tinq DDS implementation on FreeRTOS.
+
+## Notes:
+- Node functions specified in application_tasks.h (a task table).
+- Data transfer is implemented using UDP.

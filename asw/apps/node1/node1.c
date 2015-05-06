@@ -9,6 +9,7 @@ void sqrtCallback(const Message* msg)
 	// Set data for msg to be published.
 	*((float*)sqrt_pub->msg->data) = (float)sqrt((double)*((int32_t*)msg->data));
 	os_printf("Sqrt of %d: %d", num, (long)*((float*)sqrt_pub->msg->data));
+
 	// Publish msg to "sqrt" topic.
 	publish(sqrt_pub);
 }
@@ -18,7 +19,8 @@ void myloop()
 	counter++;
 	os_printf("Counter:%d\n", counter);
 }
-
+/*Publisher p;
+p.advertise<Int32>(...);*/
 void node1(void* params)
 {
 	Node* node = createNode("nodeB"); // Register node with the name 'nodeB' in RCL.

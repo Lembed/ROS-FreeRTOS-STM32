@@ -1,16 +1,24 @@
 #ifndef NODE_H_
 #define NODE_H_
-
-namespace ros {
 extern "C" void os_printf(const char* fmt, ...);
+namespace ros {
+
 class Node {
 public:
-	Node();
+	Node(const char* name);
 	void print()
 	{
 		os_printf("Test!\n");
 	}
+	void addSharedObject(const char* name, void* object);
+	void* getSharedObject(const char* name);
+	static Node** list;
+	const char* name;
+private:
+
+
 };
+
 
 } /* namespace ros */
 

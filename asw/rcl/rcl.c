@@ -8,7 +8,7 @@ typedef struct node_descriptor {
 extern node_decriptor nodes;
 
 Node* Nodes[sizeof(nodes) / sizeof(node_decriptor)];
-//Node* Nodes[NODE_COUNT];
+
 int lastNodeIndex = -1;
 unsigned int subscriberCount = 0;
 unsigned int publisherCount = 0;
@@ -65,7 +65,7 @@ Publisher* createPublisher(Node* node, const char* topic_name, MessageType msg_t
 	publisher->msgType = msg_type;
 	publisher->msg = createMessage(msg_type);
 
-
+	// Used for letting ros_server know which topic we are publishing to.
 	char registerTopic[] = "advertise";
 	unsigned int offset = 0;
 	unsigned char data[QUEUE_MSG_SIZE];
