@@ -13,8 +13,10 @@ typedef struct node_descriptor {
 
 node_decriptor nodes[] = {
 		{"ultrasonic_sensor", ultrasonic_sensor},
-		{"node1", node1},
+		//{"node1", node1},
 		{"node2", node2}
 };
+
+
 
 #endif /* ASW_APPS_APPLICATION_TASKS_H_ */

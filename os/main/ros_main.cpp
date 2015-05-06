@@ -5,7 +5,7 @@
 #include "semphr.h"
 extern "C"
 {
-#include "application_tasks.h"
+
 #include "ros.h"
 #include "rcl.h"
 #include "transport.h"
@@ -16,6 +16,7 @@ extern "C"
 #include "Subscriber.h"
 #include "Publisher.h"
 
+#include "application_tasks.h"
 
 extern "C"
 void RXTask(void* params)
@@ -65,6 +66,8 @@ void RXTask(void* params)
 	}
 }
 
+
+
 extern "C"
 void InitNodesTask(void* params)
 {
@@ -73,6 +76,9 @@ void InitNodesTask(void* params)
 	{
 		xTaskCreate(nodes[i].function, (const signed char*)nodes[i].name, configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
 	}
+
+
+
 	vTaskDelete(NULL);
 }
 
@@ -88,6 +94,15 @@ void mycallback(const Int32& msg)
 }
 
 
+void spinLoop(void (*callback)(void), unsigned int period)
+{
+	LOOP(period,
+	// start while
+	callback();
+	// end while
+	)
+}
+
 char taskName[32];
 void ros_main(void* p)
 {
@@ -96,16 +111,16 @@ void ros_main(void* p)
 
     vTaskDelay(5000); // TODO: Replace this sleep with semaphore signals to make sure network etc. has been setup successfully.
 	Float32 msg, msg2;
-	ros::Node* n = new ros::Node("node");
+	/*ros::Node* n = new ros::Node("node");
 	ros::Publisher* pub = new ros::Publisher;
 	pub->advertise<Float32>(n, "sqrt");
-	ros::Subscriber<Int32>* sub = new ros::Subscriber<Int32>(n, "sub", mycallback);
+	ros::Subscriber<Int32>* sub = new ros::Subscriber<Int32>(n, "sub", mycallback);*/
 
 	msg.data = 4.6f;
 	msg2.data = 4.5f;
 
-    /*xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
-	while(1)
+    xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
+    /*while(1)
 	{
 		msg.serialize(buffer);
 		msg2.deserialize(buffer);

@@ -1,5 +1,9 @@
 #include "ultrasonic_sensor.h"
 #include "rcl.h"
+#include "Node.h"
+#include "Publisher.h"
+#include "Subscriber.h"
+#include "std_msgs/Float32.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -109,15 +113,14 @@ float SR04_Read()
 	/* Return distance */
 	return distance;
 }
-
+using namespace std_msgs;
 void ultrasonic_sensor(void* params)
 {
-	// Periodic code goes here.
-	// First argument: Period.
-	// Second argument periodic code.
-	// Note: A periodic loop must always be included.
-	Node* node = createNode("nodeD");
-	Publisher *square_pub = createPublisher(node, "squared", RCL_MSG_TYPE_FLOAT);
+	ros::Node* n = new ros::Node("nodeD");
+	ros::Publisher* pub = new ros::Publisher;
+	pub->advertise<Float32>(n, "squared");
+
+
 	SR04_Init();
 	LOOP(200,
 
@@ -127,9 +130,10 @@ void ultrasonic_sensor(void* params)
 
 	if (distance_cm > -1)
 	{
-    //os_printf("Distance: %d cm\n", (long)distance_cm);
-    *((float*)square_pub->msg->data) = distance_cm;
-    publish(square_pub);
+		//os_printf("Distance: %d cm\n", (long)distance_cm);
+		Float32 msg;
+		msg.data = distance_cm;
+		pub->publish(msg);
 	}
 	// start while
 	//os_printf("Distance:\t%d\tcm", SR04read());

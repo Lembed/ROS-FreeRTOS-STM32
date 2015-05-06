@@ -50,7 +50,6 @@ public:
 	{
 		this->node = node;
 		this->topic = topic;
-		//addItemToList(node->publishers, publisher);
 		++publisherCount;
 	    //strcpy(topic, topic_name);
 	}

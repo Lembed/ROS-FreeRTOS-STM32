@@ -36,6 +36,7 @@
 #include "rcl.h"
 #include "transport.h"
 #include <string.h>
+
 namespace ros {
 unsigned int Publisher::publisherCount = 0;
 Publisher::Publisher()

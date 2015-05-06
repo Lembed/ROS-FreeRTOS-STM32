@@ -27,25 +27,3 @@ void os_printf(const char* fmt, ...)
 
     tr_log(string);
 }
-
-void addItemToList(ListItem* head, void* object)
-{
-    ListItem* current = head;
-    if (current->object == NULL)
-    {
-        current->object = object;
-        current->next = NULL;
-    }
-    else
-    {
-		while (current->next != NULL) {
-			current = current->next;
-
-		}
-
-		/* now we can add a new variable */
-		current->next = (ListItem*)os_malloc(sizeof(ListItem));
-		current->next->object = object;
-		current->next->next = NULL;
-    }
-}
