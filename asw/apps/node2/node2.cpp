@@ -15,7 +15,7 @@ void print_float(float f)
 	float square = f * 100;
 	long square_int = (long)(square / 100);
 	long period = ((long)square) % 100;
-	os_printf("Squared:%d.%d", square_int, period);
+	os_printf("Squared:%d.%d\n", square_int, period);
 }
 
 void squareCallback(const Float32& msg)
@@ -33,6 +33,7 @@ void loop2()
 {
 
 }
+
 void node2(void* params)
 {
 	ros::Node* n = new ros::Node("nodeC"); // Register node with the name 'nodeC' in RCL.
@@ -40,6 +41,6 @@ void node2(void* params)
 	square_pub->advertise<Float32>(n, "squared");// Advertise to "squared" topic.
 	ros::Subscriber<Float32>* sub = new ros::Subscriber<Float32>(n, "sqrt", squareCallback); // Subscribe to "sqrt" topic.
 
-    //spinLoop(loop2, 250);
+    spinLoop(loop2, 250);
 
 }

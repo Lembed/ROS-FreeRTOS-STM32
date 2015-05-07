@@ -114,24 +114,24 @@ float SR04_Read()
 	return distance;
 }
 using namespace std_msgs;
+
 void ultrasonic_sensor(void* params)
 {
 	ros::Node* n = new ros::Node("nodeD");
 	ros::Publisher* pub = new ros::Publisher;
 	pub->advertise<Float32>(n, "squared");
 
+	Float32 msg;
 
 	SR04_Init();
 	LOOP(200,
 
 	float distance_cm = SR04_Read();
-	//if (distance_cm > -1 && distance_cm < 200)
-	//os_printf("Distance: %d cm\n", (long)distance_cm);
 
 	if (distance_cm > -1)
 	{
 		//os_printf("Distance: %d cm\n", (long)distance_cm);
-		Float32 msg;
+
 		msg.data = distance_cm;
 		pub->publish(msg);
 	}

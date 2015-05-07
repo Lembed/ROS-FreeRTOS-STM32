@@ -42,9 +42,8 @@ unsigned int Publisher::publisherCount = 0;
 Publisher::Publisher()
 {
 	node = NULL;
-	topic = NULL;
 }
-extern "C" void tr_publish(void*,void*);
+
 void Publisher::publish(const Msg& msg)
 {
 	unsigned int offset = 0;
@@ -54,7 +53,6 @@ void Publisher::publish(const Msg& msg)
 	offset = 1 + strlen(topic);
 
 	msg.serialize(&data[offset]);
-
 	tr_publish(data, (void*)topic);
 }
 

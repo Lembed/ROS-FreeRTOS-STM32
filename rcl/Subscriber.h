@@ -53,7 +53,6 @@ namespace ros {
     public:
       virtual void callback()=0;
       virtual void deserialize(unsigned char *data)=0;
-
       // id_ is set by NodeHandle when we advertise 
       int id_;
 

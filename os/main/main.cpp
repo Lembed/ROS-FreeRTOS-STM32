@@ -21,7 +21,10 @@ void __verbose_terminate_handler() {
 }
 
 }*/
-#include "Task.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+#include "semphr.h"
 extern "C"
 {
 	void ETH_BSP_Config();

@@ -58,10 +58,6 @@ void RXTask(void* params)
 				}
 				//os_printf("Topic: %s\n", sub->topic);
 			}
-			else
-			{
-				vTaskDelay(4);
-			}
 		}
 	}
 }
@@ -74,7 +70,7 @@ void InitNodesTask(void* params)
 	unsigned int num_nodes = sizeof(nodes)/sizeof(node_decriptor);
 	for (unsigned int i=0; i< num_nodes; i++)
 	{
-		xTaskCreate(nodes[i].function, (const signed char*)nodes[i].name, configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
+		xTaskCreate(nodes[i].function, (const signed char*)nodes[i].name, configMINIMAL_STACK_SIZE*4, NULL, tskIDLE_PRIORITY + 2, NULL);
 	}
 
 
@@ -86,7 +82,6 @@ void InitNodesTask(void* params)
 #include "std_msgs/Float32.h"
 
 using namespace std_msgs;
-unsigned char buffer[30];
 
 void mycallback(const Int32& msg)
 {
@@ -103,31 +98,19 @@ void spinLoop(void (*callback)(void), unsigned int period)
 	)
 }
 
-char taskName[32];
+extern "C" void* os_malloc(unsigned int);
+void* operator new(unsigned int sz) {
+	return os_malloc(sz);
+}
+
 void ros_main(void* p)
 {
 	tr_init();
 	xTaskCreate(RXTask, (const signed char*)"RXTask", 1024, NULL, tskIDLE_PRIORITY + 3, NULL);
 
     vTaskDelay(5000); // TODO: Replace this sleep with semaphore signals to make sure network etc. has been setup successfully.
-	Float32 msg, msg2;
-	/*ros::Node* n = new ros::Node("node");
-	ros::Publisher* pub = new ros::Publisher;
-	pub->advertise<Float32>(n, "sqrt");
-	ros::Subscriber<Int32>* sub = new ros::Subscriber<Int32>(n, "sub", mycallback);*/
-
-	msg.data = 4.6f;
-	msg2.data = 4.5f;
 
     xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
-    /*while(1)
-	{
-		msg.serialize(buffer);
-		msg2.deserialize(buffer);
-		pub->publish(msg2);
 
-		os_printf("Num: %s %d\n", buffer, msg2.data);
-		vTaskDelay(1000);
-	}*/
     vTaskDelete(NULL);
 }

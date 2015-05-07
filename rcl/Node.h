@@ -9,17 +9,9 @@ public:
 	void addSharedObject(const char* name, void* object);
 	void* getSharedObject(const char* name);
 	static Node** list;
-	const char* name;
-	static void nodeTask(void* args);
-	virtual void init() {};
-	virtual void run() {};
-	void setLoopPeriod(unsigned int period)
-	{
-		this->period = period;
-	}
-	unsigned int getPeriod() {return period;}
+	char name[32];
 private:
-	unsigned int period;
+
 
 };
 

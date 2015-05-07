@@ -37,6 +37,9 @@
 #include "Node.h"
 #include "msg.h"
 #include <stdlib.h>
+#include <string.h>
+#define QUEUE_MSG_SIZE 128
+extern "C" void tr_publish(void*,void*);
 namespace ros {
 
 
@@ -49,13 +52,26 @@ public:
     void advertise(ros::Node* node, const char* topic)
 	{
 		this->node = node;
-		this->topic = topic;
+		//this->topic = topic;
 		++publisherCount;
-	    //strcpy(topic, topic_name);
+	    strcpy(this->topic, topic);
+
+
+		// Used for letting ros_server know which topic we are publishing to.
+		char registerTopic[] = "advertise";
+		unsigned int offset = 0;
+		unsigned char data[QUEUE_MSG_SIZE];
+		data[0] = (char)strlen(registerTopic);
+		memcpy(&data[1], registerTopic, strlen(registerTopic));
+		offset = 1 + strlen(registerTopic);
+		data[offset++] = (uint8_t) 0; //TODO: Find a better way to signal the data type.
+		memcpy(&data[offset], topic, strlen(topic));
+		data[offset+strlen(topic)] = '\0';
+		tr_publish(data, NULL);
 	}
-    void publish(const Msg& msg);
+    void publish(const Msg&);
 private:
-    const char *topic;
+    char topic[32];
     Node* node;
     static unsigned int publisherCount;
 };

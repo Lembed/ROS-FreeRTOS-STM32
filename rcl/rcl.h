@@ -1,6 +1,7 @@
 #define QUEUE_MSG_SIZE 128
 #include <stdint.h>
 #include "stm32f4xx.h"
+
 void spinLoop(void (*callback)(void), unsigned int period);
 /**
  * LOOP macro: Used to include a periodic code.
