@@ -179,8 +179,8 @@ void tr_init() // a function of transport layer
 
 
 	xTaskCreate(tr_UDPsend, "transport_Log", 512, (void*) &shellVars, tskIDLE_PRIORITY + 3, NULL);
-	xTaskCreate(tr_UDPsend, "transport_UDPSend", 512, (void*) &udpRXVars, tskIDLE_PRIORITY + 3, NULL);
-	xTaskCreate(tr_UDPreceive, "transport_UDPReceive", 512, NULL, tskIDLE_PRIORITY + 5, NULL);
+	//xTaskCreate(tr_UDPsend, "transport_UDPSend", 512, (void*) &udpRXVars, tskIDLE_PRIORITY + 3, NULL);
+	//xTaskCreate(tr_UDPreceive, "transport_UDPReceive", 512, NULL, tskIDLE_PRIORITY + 5, NULL);
 }
 #define TAKE_MESSAGE_TIMEOUT 60000
 

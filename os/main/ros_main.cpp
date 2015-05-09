@@ -102,15 +102,35 @@ extern "C" void* os_malloc(unsigned int);
 void* operator new(unsigned int sz) {
 	return os_malloc(sz);
 }
+void *operator new[](unsigned int sz)
+{
+    // TODO: is this correct?
+	return os_malloc(sz);
+}
+void operator delete(void* ptr)
+{
+	// Do nothing, since once allocated memory cannot be freed!
+}
+
+void operator delete[](void *ptr)
+{
+	// Do nothing, since once allocated memory cannot be freed!
+}
+
+extern void xmlrpc_task(void* p);
 
 void ros_main(void* p)
 {
+	tr_init();
+	vTaskDelay(2000);
+	xTaskCreate(xmlrpc_task, (const signed char*)"RXTask2", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+	/*vTaskDelay(2000);
 	tr_init();
 	xTaskCreate(RXTask, (const signed char*)"RXTask", 1024, NULL, tskIDLE_PRIORITY + 3, NULL);
 
     vTaskDelay(5000); // TODO: Replace this sleep with semaphore signals to make sure network etc. has been setup successfully.
 
-    xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
-
+    //xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
+*/
     vTaskDelete(NULL);
 }
