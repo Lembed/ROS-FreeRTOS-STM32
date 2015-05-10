@@ -122,8 +122,8 @@ extern void xmlrpc_task(void* p);
 void ros_main(void* p)
 {
 	tr_init();
-	vTaskDelay(2000);
-	xTaskCreate(xmlrpc_task, (const signed char*)"RXTask2", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
+	vTaskDelay(5000);
+	xTaskCreate(xmlrpc_task, (const signed char*)"RXTask2", 2048, NULL, tskIDLE_PRIORITY + 2, NULL);
 	/*vTaskDelay(2000);
 	tr_init();
 	xTaskCreate(RXTask, (const signed char*)"RXTask", 1024, NULL, tskIDLE_PRIORITY + 3, NULL);
