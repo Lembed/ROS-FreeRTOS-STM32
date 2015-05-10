@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include "ros/msg.h"
 
 namespace std_msgs
 {

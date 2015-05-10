@@ -11,25 +11,22 @@ class XMLRPCHandler
 public:
 	static void createHeader(const char* hostURI, int contentLength, char* data)
 	{
-		static char firstPart[] = "POST / HTTP/1.1\nUser-Agent: curl/7.35.0\nHost: ";
-		static char secondPart[] = "\\Accept: */*\nContent-Length: ";
-		static char contentLen[16];
-		sprintf(contentLen, "%d", contentLength);
-		static char finalPart[] = "\nContent-Type: application/x-www-form-urlencoded\n\n";
-
 		if (data != NULL)
 		{
-			strcpy(data, firstPart);
+
+			strcpy(data, "POST / HTTP/1.1\nUser-Agent: curl/7.35.0\nHost: ");
 			strcat(data, hostURI);
-			strcat(data, secondPart);
+			strcat(data, "\\Accept: */*\nContent-Length: ");
+			static char contentLen[16];
+			sprintf(contentLen, "%d", contentLength);
 			strcat(data, contentLen);
-			strcat(data, finalPart);
+			strcat(data, "\nContent-Type: application/x-www-form-urlencoded\n\n");
 		}
 	}
 
 	static void registerPublisher(const char* callerID, const char* topic, const char* msgType, const char* uri)
 	{
-		static char data[512];
+		char data[512];
 		static char firstPart[] = "<?xml version=\"1.0\"?> <methodCall> <methodName>registerPublisher</methodName> <params> <param> <value>/";
 		static char secondPart[] = "</value> </param> <param> <value>";
 		static char thirdPart[] = "</value><param> <value>";
@@ -45,12 +42,10 @@ public:
 		strcat(data, uri);
 		strcat(data, finalPart);
 
-		static char header[256];
-		for (int i=0; i< sizeof(header); i++) header[i] = 0;
+		char header[256];
 		createHeader("SI-Z0M81:11311", strlen(data), header);
-		static char xmlrpc[768];
-		for (int i=0; i< sizeof(xmlrpc); i++) xmlrpc[i] = 0;
-		strcat(xmlrpc, header);
+		char xmlrpc[768];
+		strcpy(xmlrpc, header);
 		strcat(xmlrpc, data);
 
 		/*for(int i=0; i< strlen(xmlrpc); i++)
@@ -106,7 +101,7 @@ public:
 	{
 		int socket_fd;
 	    struct sockaddr_in sa,ra;
-	    static char data_buffer[1024];
+	    char data_buffer[1024];
 
 	    int recv_data;  // Creates an TCP socket (SOCK_STREAM) with Internet Protocol Family (PF_INET).
 	    // Protocol family and Address family related. For example PF_INET Protocol Family and AF_INET family are coupled.
@@ -301,6 +296,6 @@ public:
 
 	static void waitForRequest(uint16_t port)
 	{
-		xTaskCreate(mytcp, (const signed char*)"tcpserver", 1024, &port, tskIDLE_PRIORITY + 2, NULL);
+		xTaskCreate(mytcp, (const signed char*)"tcpserver", 2048, &port, tskIDLE_PRIORITY + 2, NULL);
 	}
 };
