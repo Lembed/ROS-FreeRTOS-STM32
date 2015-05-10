@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "tcp.h"
 #include <lwip/sockets.h>
 #define SENDER_PORT_NUM 47855
 #define SENDER_IP_ADDR "10.3.84.99"
