@@ -132,9 +132,14 @@ public:
 	}
 	void initPublisherEndpoint(uint16_t port)
 	{
+		static int taskID = 1;
+		char taskName[16];
+		sprintf(taskName, "pubServer_%d", taskID++);
+		os_printf("Taskname: %s\n", taskName);
 		this->port = port;
 		txQueueHandle = xQueueCreate(TX_QUEUE_LEN, sizeof(char) * TX_QUEUE_MSG_SIZE);
-		xTaskCreate(mytcp, (const signed char*)"tcpserver2", 1024, this, tskIDLE_PRIORITY + 2, NULL);
+
+		xTaskCreate(mytcp, (const signed char*)taskName, 256, this, tskIDLE_PRIORITY + 2, NULL);
 	}
 	void sendMessage(const char* msg)
 	{

@@ -2,7 +2,6 @@
 #include <string.h>
 #include "tcp.h"
 #include <lwip/sockets.h>
-#define SENDER_PORT_NUM 47855
 #define SENDER_IP_ADDR "10.3.84.99"
 
 #define SERVER_PORT_NUM 11311
@@ -25,7 +24,7 @@ public:
 		}
 	}
 
-	static void registerPublisher(const char* callerID, const char* topic, const char* msgType, const char* uri)
+	static void registerPublisher(const char* callerID, const char* topic, const char* msgType, uint16_t port)
 	{
 		char data[512];
 		static char firstPart[] = "<?xml version=\"1.0\"?> <methodCall> <methodName>registerPublisher</methodName> <params> <param> <value>/";
@@ -40,7 +39,10 @@ public:
 		strcat(data, thirdPart);
 		strcat(data, msgType);
 		strcat(data, secondPart);
-		strcat(data, uri);
+		char portStr[6];
+		sprintf(portStr, "%d", port);
+		strcat(data, "http://10.3.84.99:");
+		strcat(data, portStr);
 		strcat(data, finalPart);
 
 		char header[256];
@@ -55,15 +57,14 @@ public:
 		}
 		os_printf("\n");*/
 
-		makeRequest(xmlrpc);
+		makeRequest(xmlrpc, port);
 
 
 	}
 
-	static void registerSubscriber(const char* callerID, const char* topic, const char* msgType, const char* uri)
+	static void registerSubscriber(const char* callerID, const char* topic, const char* msgType, uint16_t port)
 	{
-		static char data[512];
-		for (int i=0; i< sizeof(data); i++) data[i] = 0;
+		char data[512];
 		static char firstPart[] = "<?xml version=\"1.0\"?> <methodCall> <methodName>registerSubscriber</methodName> <params> <param> <value>/";
 		static char secondPart[] = "</value> </param> <param> <value>";
 		static char thirdPart[] = "</value> <param> <value>";
@@ -76,14 +77,15 @@ public:
 		strcat(data, thirdPart);
 		strcat(data, msgType);
 		strcat(data, secondPart);
-		strcat(data, uri);
+		char portStr[6];
+		sprintf(portStr, "%d", port);
+		strcat(data, "http://10.3.84.99:");
+		strcat(data, portStr);
 		strcat(data, finalPart);
 
-		static char header[256];
-		//for (int i=0; i< sizeof(header); i++) header[i] = 0;
+		char header[256];
 		createHeader("SI-Z0M81:11311", strlen(data), header);
-		static char xmlrpc[768];
-		//for (int i=0; i< sizeof(xmlrpc); i++) xmlrpc[i] = 0;
+		char xmlrpc[768];
 		strcpy(xmlrpc, header);
 		strcat(xmlrpc, data);
 
@@ -93,12 +95,15 @@ public:
 		}
 		os_printf("\n");*/
 
-		makeRequest(xmlrpc);
+		makeRequest(xmlrpc, port);
 
 
 	}
-
-	static void makeRequest(const char* req)
+	struct ports {
+		uint16_t port;
+		uint16_t serverPort;
+	};
+	static void makeRequest(const char* req, uint16_t port)
 	{
 		int socket_fd;
 	    struct sockaddr_in sa,ra;
@@ -119,7 +124,7 @@ public:
 	    memset(&sa, 0, sizeof(struct sockaddr_in));
 	    sa.sin_family = AF_INET;
 	    sa.sin_addr.s_addr = inet_addr(SENDER_IP_ADDR);
-	    sa.sin_port = htons(SENDER_PORT_NUM);
+	    sa.sin_port = htons(port);
 
 
 	    /* Bind the TCP socket to the port SENDER_PORT_NUM and to the current
@@ -129,7 +134,7 @@ public:
 	    */
 	    if (bind(socket_fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) == -1)
 	    {
-	    os_printf("Bind to Port Number %d ,IP address %s failed\n",SENDER_PORT_NUM,SENDER_IP_ADDR);
+	    os_printf("Bind to Port Number %d ,IP address %s failed\n", port, SENDER_IP_ADDR);
 	    close(socket_fd);
 
 	    }
@@ -177,8 +182,8 @@ public:
 	      tcp_close(pcb);
 	}
 	static err_t echo_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err){
-		  static char data[1024];
-		  static char buffer[1024];
+		  char data[600];
+		  char buffer[600];
 	      int i;
 	      int len;
 	      char *pc;
@@ -193,12 +198,15 @@ public:
 	            len =p->tot_len;
 	            //copy to our own buffer
 	            for (i=0; i<len; i++)
+	            {
 	            	data[i]= pc[i];
-	    		for(int i=0; i< sizeof(data); i++)
-	    		{
-	    			os_printf("%c", data[i]);
-	    		}
-	    		os_printf("\n");
+	            }
+
+	            /*for (i=0; i<200; i++)
+	            {
+	            	os_printf("%c%c%c", data[i*3], data[i*3+1], data[i*3+2]);
+	            }*/
+	    		os_printf("Len:%d\n", len);
 
 	    	    char* pos = strstr((char*)data, "<methodName>");
 	    	    char* pos2 = strstr((char*)data, "</methodName>");
@@ -227,19 +235,20 @@ public:
 	    					  topic[pos4-pos3-7] = 0;
 	    					  os_printf("topic:%s\n", topic);
 	    	            }
-	    	            static char xml[300];
-	    	            for (int i=0; i< sizeof(xml); i++) xml[i] = 0;
+	    	            char xml[300];
 
-	    	            strcpy(xml, "<?xml version=\"1.0\"?><methodResponse><params><param><value><array><data><value><i4>1</i4></value><value></value><value><array><data><value>TCPROS</value><value>10.3.84.99</value><value><i4>");
+	    	            strcpy(xml, "<?xml version=\"1.0\"?><methodResponse><params><param><value><array><data><value><i4>1</i4></value>");
+	    	            strcat(xml, "<value></value><value><array><data><value>TCPROS</value><value>10.3.84.99</value><value><i4>");
 
-	    	            static char portStr[16];
-	    	            uint16_t port = 50000;
+	    	            char portStr[16];
+	    	            uint16_t port = ((struct ports*)arg)->serverPort;
 	    	    		sprintf(portStr, "%d", port);
 	    	    		strcat(xml, portStr);
 	    	    		strcat(xml, "</i4></value></data></array></value></data></array></value></param></params></methodResponse>");
 
-	    	    		strcpy(buffer, "HTTP/1.0 200 OK\nServer: BaseHTTP/0.3 Python/2.7.6\nDate: Sat, 09 May 2015 21:53:33 GMT\nContent-type: text/xml\nContent-length: ");
-	    	            static char contentLen[16];
+	    	    		strcpy(buffer, "HTTP/1.0 200 OK\nServer: BaseHTTP/0.3 Python/2.7.6\n");
+	    	    		strcat(buffer, "Date: Sat, 09 May 2015 21:53:33 GMT\nContent-type: text/xml\nContent-length: ");
+	    	            char contentLen[16];
 	    	    		sprintf(contentLen, "%d", strlen(xml));
 	    	    		strcat(buffer, contentLen);
 	    	    		strcat(buffer, "\n\n");
@@ -273,8 +282,9 @@ public:
 	}
 
 	static err_t echo_accept(void *arg, struct tcp_pcb *pcb, err_t err){
-
-	      tcp_setprio(pcb, TCP_PRIO_MIN);
+		uint16_t port = ((struct ports*)arg)->serverPort;
+		//os_printf("Accept %d!\n", port);
+		tcp_setprio(pcb, TCP_PRIO_MIN);
 	      tcp_recv(pcb, echo_recv);
 	      tcp_err(pcb, NULL); //Don't care about error here
 	      tcp_poll(pcb, NULL, 4); //No polling here
@@ -284,7 +294,8 @@ public:
 
 	static void mytcp(void* p){
 	      struct tcp_pcb *pcb = tcp_new();
-	      tcp_bind(pcb, IP_ADDR_ANY, *((uint16_t*)p));
+	      tcp_arg(pcb, p);
+	      tcp_bind(pcb, IP_ADDR_ANY, ((struct ports*)p)->port);
 	      while(1)
 	      {
 	      pcb = tcp_listen(pcb);
@@ -295,8 +306,15 @@ public:
 	      vTaskDelete(NULL);
 	}
 
-	static void waitForRequest(uint16_t port)
+	static void waitForRequest(uint16_t port, uint16_t serverPort)
 	{
-		xTaskCreate(mytcp, (const signed char*)"tcpserver", 2048, &port, tskIDLE_PRIORITY + 2, NULL);
+		struct ports* p = new struct ports;
+		p->port = port;
+		p->serverPort = serverPort;
+		static int taskID = 1;
+		char taskName[16];
+		sprintf(taskName, "rpcServer_%d", taskID++);
+		os_printf("Taskname: %s\n", taskName);
+		xTaskCreate(mytcp, (const signed char*)taskName, 1536, p, tskIDLE_PRIORITY + 2, NULL);
 	}
 };

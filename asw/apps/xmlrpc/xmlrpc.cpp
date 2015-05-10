@@ -21,20 +21,28 @@ void serializeMsg(const ros::Msg& msg, unsigned char* outbuffer)
 	memcpy(outbuffer+sizeof(uint32_t), stream1, offset);
 }
 
+static uint16_t xmlPort = 40000;
+static uint16_t tcpPort = 50000;
+
+ConnectionHandler* createPublisher(const char* nodeName, const char* topicName, const char* msgType)
+{
+	XMLRPCHandler::registerPublisher(nodeName, topicName, msgType, xmlPort);
+	ConnectionHandler* connection = new ConnectionHandler;
+	connection->initPublisherEndpoint(tcpPort);
+	XMLRPCHandler::waitForRequest(xmlPort, tcpPort);
+
+	xmlPort++;
+	tcpPort++;
+	return connection;
+}
+
 void xmlrpc_task(void* p)
 {
-	XMLRPCHandler::registerPublisher("rostopic_4767_1316912741557", "chatter", "std_msgs/String", "http://10.3.84.99:47855/");
-	//XMLRPCHandler::registerSubscriber("rostopic_4767", "chatter", "std_msgs/String", "http://10.3.84.99:47857/");
-	//XMLRPCHandler::registerPublisher("rostopic_4767_13169", "chatter", "std_msgs/String", "http://10.3.84.99:47856/");
+	ConnectionHandler* connection = createPublisher("rostopic_4767_1316912741557", "chatter", "std_msgs/String");
+	ConnectionHandler* connection2 = createPublisher("rostopic_476", "chatter2", "std_msgs/String");
 
-	vTaskDelay(2000);
-	ConnectionHandler* connection = new ConnectionHandler;
-	connection->initPublisherEndpoint(50000);
-
-	XMLRPCHandler::waitForRequest(47855);
-
-	char string[] = "Hello ROS!";
-	/*String str;
+	/*char string[] = "Hello ROS!";
+	String str;
 	str.data = string;*/
 
 	/*Int32 str;
@@ -55,6 +63,8 @@ void xmlrpc_task(void* p)
 
 	unsigned char stream[100];
 	serializeMsg(str, stream);
+	unsigned char stream2[100];
+	serializeMsg(str, stream2);
 
 
 	//TODO: Why does system crash with rostopic echo chatter?
@@ -62,6 +72,7 @@ void xmlrpc_task(void* p)
 	for (;;)
 	{
 		connection->sendMessage((const char*)stream);
+		connection2->sendMessage((const char*)stream2);
 		vTaskDelay(500);
 	}
 
