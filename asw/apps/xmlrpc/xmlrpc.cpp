@@ -29,9 +29,7 @@ ConnectionHandler* createPublisher(const char* nodeName, const char* topicName, 
 	XMLRPCHandler::registerPublisher(nodeName, topicName, msgType, xmlPort);
 	ConnectionHandler* connection = new ConnectionHandler;
 	connection->initPublisherEndpoint(tcpPort);
-	XMLRPCHandler::waitForRequest(xmlPort, tcpPort);
 
-	xmlPort++;
 	tcpPort++;
 	return connection;
 }
@@ -40,6 +38,7 @@ void xmlrpc_task(void* p)
 {
 	ConnectionHandler* connection = createPublisher("rostopic_4767_1316912741557", "chatter", "std_msgs/String");
 	ConnectionHandler* connection2 = createPublisher("rostopic_476", "chatter2", "std_msgs/String");
+	XMLRPCHandler::waitForRequest(xmlPort);
 
 	/*char string[] = "Hello ROS!";
 	String str;
@@ -73,7 +72,7 @@ void xmlrpc_task(void* p)
 	{
 		connection->sendMessage((const char*)stream);
 		connection2->sendMessage((const char*)stream2);
-		vTaskDelay(500);
+		vTaskDelay(200);
 	}
 
 	vTaskDelete(NULL);

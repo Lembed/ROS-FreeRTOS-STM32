@@ -6,6 +6,11 @@
 
 #define SERVER_PORT_NUM 11311
 #define SERVER_IP_ADDRESS "10.3.84.100"
+
+#define TOPIC_COUNT 20
+#define MAX_TOPIC_LEN 48
+char topics[TOPIC_COUNT][MAX_TOPIC_LEN];
+
 class XMLRPCHandler
 {
 public:
@@ -27,6 +32,12 @@ public:
 	static void registerPublisher(const char* callerID, const char* topic, const char* msgType, uint16_t port)
 	{
 		char data[512];
+
+		static uint16_t topicIndex = 0;
+		strcpy(topics[topicIndex], "/");
+		strcat(topics[topicIndex], topic);
+		topicIndex++;
+
 		static char firstPart[] = "<?xml version=\"1.0\"?> <methodCall> <methodName>registerPublisher</methodName> <params> <param> <value>/";
 		static char secondPart[] = "</value> </param> <param> <value>";
 		static char thirdPart[] = "</value><param> <value>";
@@ -46,7 +57,7 @@ public:
 		strcat(data, finalPart);
 
 		char header[256];
-		createHeader("SI-Z0M81:11311", strlen(data), header);
+		createHeader("10.3.84.100:11311", strlen(data), header);
 		char xmlrpc[768];
 		strcpy(xmlrpc, header);
 		strcat(xmlrpc, data);
@@ -84,7 +95,7 @@ public:
 		strcat(data, finalPart);
 
 		char header[256];
-		createHeader("SI-Z0M81:11311", strlen(data), header);
+		createHeader("10.3.84.100:11311", strlen(data), header);
 		char xmlrpc[768];
 		strcpy(xmlrpc, header);
 		strcat(xmlrpc, data);
@@ -99,10 +110,6 @@ public:
 
 
 	}
-	struct ports {
-		uint16_t port;
-		uint16_t serverPort;
-	};
 	static void makeRequest(const char* req, uint16_t port)
 	{
 		int socket_fd;
@@ -207,7 +214,7 @@ public:
 	            	os_printf("%c%c%c", data[i*3], data[i*3+1], data[i*3+2]);
 	            }*/
 	    		os_printf("Len:%d\n", len);
-
+	    		uint16_t port = 0;
 	    	    char* pos = strstr((char*)data, "<methodName>");
 	    	    char* pos2 = strstr((char*)data, "</methodName>");
 	    	    if (pos2 > pos)
@@ -224,6 +231,7 @@ public:
 	    					  char caller_id[pos2-pos-7];
 	    					  strncpy (caller_id, pos+7, pos2-pos-7);
 	    					  caller_id[pos2-pos-7] = 0;
+
 	    					  os_printf("caller_id:%s\n", caller_id);
 	    	            }
 	    	            char* pos3 = strstr((char*)pos2+7, "<value>");
@@ -233,7 +241,16 @@ public:
 	    					  char topic[pos4-pos3-7];
 	    					  strncpy (topic, pos3+7, pos4-pos3-7);
 	    					  topic[pos4-pos3-7] = 0;
-	    					  os_printf("topic:%s\n", topic);
+	    					  for(uint16_t i=0; i<TOPIC_COUNT; i++)
+	    					  {
+	    						  if (!strcmp(topic, topics[i]))
+	    						  {
+	    							  port = 50000 + i;
+	    							  break;
+	    						  }
+	    					  }
+
+	    					  os_printf("topic:%s, port:%d\n", topic, port);
 	    	            }
 	    	            char xml[300];
 
@@ -241,7 +258,6 @@ public:
 	    	            strcat(xml, "<value></value><value><array><data><value>TCPROS</value><value>10.3.84.99</value><value><i4>");
 
 	    	            char portStr[16];
-	    	            uint16_t port = ((struct ports*)arg)->serverPort;
 	    	    		sprintf(portStr, "%d", port);
 	    	    		strcat(xml, portStr);
 	    	    		strcat(xml, "</i4></value></data></array></value></data></array></value></param></params></methodResponse>");
@@ -282,8 +298,6 @@ public:
 	}
 
 	static err_t echo_accept(void *arg, struct tcp_pcb *pcb, err_t err){
-		uint16_t port = ((struct ports*)arg)->serverPort;
-		//os_printf("Accept %d!\n", port);
 		tcp_setprio(pcb, TCP_PRIO_MIN);
 	      tcp_recv(pcb, echo_recv);
 	      tcp_err(pcb, NULL); //Don't care about error here
@@ -294,8 +308,7 @@ public:
 
 	static void mytcp(void* p){
 	      struct tcp_pcb *pcb = tcp_new();
-	      tcp_arg(pcb, p);
-	      tcp_bind(pcb, IP_ADDR_ANY, ((struct ports*)p)->port);
+	      tcp_bind(pcb, IP_ADDR_ANY, *(uint16_t*)p);
 	      while(1)
 	      {
 	      pcb = tcp_listen(pcb);
@@ -306,15 +319,12 @@ public:
 	      vTaskDelete(NULL);
 	}
 
-	static void waitForRequest(uint16_t port, uint16_t serverPort)
+	static void waitForRequest(uint16_t port)
 	{
-		struct ports* p = new struct ports;
-		p->port = port;
-		p->serverPort = serverPort;
 		static int taskID = 1;
 		char taskName[16];
 		sprintf(taskName, "rpcServer_%d", taskID++);
 		os_printf("Taskname: %s\n", taskName);
-		xTaskCreate(mytcp, (const signed char*)taskName, 1536, p, tskIDLE_PRIORITY + 2, NULL);
+		xTaskCreate(mytcp, (const signed char*)taskName, 256, &port, tskIDLE_PRIORITY + 2, NULL);
 	}
 };

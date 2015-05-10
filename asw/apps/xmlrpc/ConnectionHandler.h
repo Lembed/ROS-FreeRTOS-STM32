@@ -102,7 +102,7 @@ private:
 	}
 
 	static err_t echo_accept(void *arg, struct tcp_pcb *pcb, err_t err){
-
+		// TODO: How to create a task for each connected client?
       tcp_setprio(pcb, TCP_PRIO_MIN);
       tcp_recv(pcb, echo_recv);
       tcp_err(pcb, NULL); //Don't care about error here
