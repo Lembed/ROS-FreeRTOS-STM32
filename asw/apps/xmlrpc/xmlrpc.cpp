@@ -96,10 +96,10 @@ void xmlrpc_task(void* p)
 	//XMLRPCHandler::registerPublisher("talker", "chatter", "std_msgs/String");
 	//vTaskDelay(4000);
 
-	//XMLRPCServer::registerPublisher("talker", "chatter", "std_msgs/String");
+	XMLRPCServer::registerPublisher("talker", "chatter", "std_msgs/String");
 	//XMLRPCServer::registerPublisher("talker1", "chatter", "std_msgs/String");
 	//XMLRPCServer::registerPublisher("talker2", "chatter", "std_msgs/String");
-	XMLRPCServer::registerSubscriber("listener", "chatter", "std_msgs/String");
+	//XMLRPCServer::registerSubscriber("listener", "chatter", "std_msgs/String");
 
 	//XMLRPCHandler::waitForRequest();
 

@@ -184,6 +184,7 @@ private:
 	        len = p->tot_len;
 
 	        self->onReceive(pc);
+	        self->receiveCallback(pc, self->buffer);
 
 	        pbuf_free(p);
 
@@ -228,12 +229,7 @@ private:
 	    }
 	    vTaskDelete(NULL);
 	}
-public:
-	TCPServerBase(const char* taskName, uint16_t port)
-	{
-		this->port = port;
-		xTaskCreate(tcptask, (const signed char*)taskName, 128, this, tskIDLE_PRIORITY + 2, NULL);
-	}
+protected:
 	void createBuffer(uint16_t size)
 	{
 		// Buffer can only be created once.
@@ -243,6 +239,13 @@ public:
 			buffer = new char[bufferLength];
 		}
 	}
+public:
+	TCPServerBase(const char* taskName, uint16_t port, void(*receiveCallback)(const char* data, char* buffer) = NULL)
+	{
+		this->port = port;
+		this->receiveCallback = receiveCallback;
+		xTaskCreate(tcptask, (const signed char*)taskName, 128, this, tskIDLE_PRIORITY + 2, NULL);
+	}
 private:
 	char* buffer;
 	uint16_t bufferLength;
@@ -251,15 +254,19 @@ protected:
 	virtual void onAccept() = 0;
 	virtual void onReceive(const char* data) = 0;
 	virtual void onSendAcknowledged() = 0;
+	void(*receiveCallback)(const char* data, char* buffer);
 
 };
+
+#define HTTP_SERVER_BUFFER_SIZE 1500
 
 class HTTPServer : public TCPServerBase
 {
 public:
-	HTTPServer(const char* taskName, uint16_t port) : TCPServerBase(taskName, port)
+	HTTPServer(const char* taskName, uint16_t port, void(*receiveCallback)(const char* data, char* buffer) = NULL)
+	: TCPServerBase(taskName, port, receiveCallback)
 	{
-		createBuffer(1024);
+		createBuffer(1500);
 	}
 private:
 	virtual void onAccept()
@@ -274,6 +281,8 @@ private:
 	{
 
 	}
+
+
 
 
 };
@@ -294,7 +303,7 @@ protected:
 			strcat(data, "\nContent-Type: application/x-www-form-urlencoded\n\n");
 		}
 	}
-	static void createResponseHeader(const char* hostURI, int contentLength, char* data)
+	static void createResponseHeader(int contentLength, char* data)
 	{
 		if (data != NULL)
 		{
@@ -307,9 +316,9 @@ protected:
 		}
 	}
 
-	char data[1024];
+	char data[1500];
 	char header[256];
-	char xml[768];
+	char xml[1024];
 public:
 	const char* getData()
 	{
@@ -343,10 +352,6 @@ public:
 		strcpy(data, header);
 		strcat(data, xml);
 	}
-	const char* getData()
-	{
-		return data;
-	}
 };
 
 class TopicRequest : public XMLRequest
@@ -365,11 +370,27 @@ public:
 		strcpy(data, header);
 		strcat(data, xml);
 	}
-	const char* getData()
-	{
-		return data;
-	}
 };
+
+class TopicResponse : public XMLRequest
+{
+public:
+	TopicResponse()
+	{
+		strcpy(xml, "<?xml version=\"1.0\"?><methodResponse><params><param><value><array><data><value><i4>1</i4></value>");
+		strcat(xml, "<value></value><value><array><data><value>UDPROS</value><value>10.3.84.99</value><value><i4>46552</i4>");
+		strcat(xml, "</value><value><i4>3</i4></value><value><i4>1500</i4></value><value><base64>");
+		strcat(xml, "EAAAAGNhbGxlcmlkPS90YWxrZXInAAAAbWQ1c3VtPTk5MmNlOGExNjg3Y2VjOGM4YmQ4ODNlYzczY2E0MWQxHwAAAG1lc3NhZ2VfZGVmaW5pdGlvbj1zdHJpbmcgZGF0YQoOAAAAdG9waWM9L2NoYXR0ZXIUAAAAdHlwZT1zdGRfbXNncy9TdHJpbmc=");
+		strcat(xml, "</base64></value></data></array></value></data></array></value></param></params></methodResponse>");
+
+		createResponseHeader(strlen(xml), header);
+
+		strcpy(data, header);
+		strcat(data, xml);
+	}
+
+};
+
 
 #define MASTER_URI "10.3.84.100:11311"
 class XMLRPCServer
@@ -378,9 +399,74 @@ private:
 
 
 public:
+	static void UDPSend(void* params)
+	{
+		uint16_t port = *((uint16_t*)params);
+		os_printf("My port:%d\n", port);
+
+		struct netconn* conn = netconn_new( NETCONN_UDP );
+	    netconn_bind(conn, IP_ADDR_ANY, 46552);
+	    struct ip_addr ip;
+	    ip.addr = inet_addr("10.3.84.100");
+	    netconn_connect(conn, &ip, port);
+	    char msg[] = {
+	    		0x03, 0x00, 0x00, 0x00,
+	    		0x00, 0x01, 0x01, 0x00,
+				0x15, 0x00, 0x00, 0x00,
+				0x11, 0x00, 0x00, 0x00,
+				0x68, 0x65, 0x6c, 0x6c,
+				0x6f, 0x20, 0x77, 0x6f,
+				0x72, 0x6c, 0x64, 0x5f,
+				0x20, 0x35, 0x38, 0x36,
+				0x31
+	    };
+
+
+		for(;;)
+		{
+				// Try to receive message, block the task for at most UDPReceiveTimeout ticks if queue is empty.
+				//if (xQueueReceive(vars->queueHandle, &msg, vars->queueReceiveTimeout > 0 ? vars->queueReceiveTimeout : 100))
+				//if (xQueueReceive(LogQueueHandle, &msg, 100))
+				{
+					// Methods for UDP send.
+					os_printf("Sending... %s\n", &msg[16]);
+					struct netbuf *buf = netbuf_new();
+					msg[5]++;
+				    void* data = netbuf_alloc(buf, sizeof(msg)); // Also deallocated with netbuf_delete(buf)
+				    memcpy (data, msg, sizeof (msg));
+				    netconn_send(conn, buf);
+				    netbuf_delete(buf); // Deallocate packet buffer
+
+				    vTaskDelay(100);
+				}
+
+		}
+	}
+	static void XMLRPCServerReceiveCallback(const char* data, char* buffer)
+	{
+		char* pos = strstr(data+550, "<i4>");
+	    char* pos2 = strstr(data+550, "</i4>");
+
+	    os_printf("pos:%d, pos2:%d\n", pos, pos2);
+
+	    if (pos < pos2)
+	    {
+	    	char portStr[pos2-pos-5];
+	    	strncpy (portStr, pos+4, pos2-pos-4);
+	    	portStr[pos2-pos-4] = 0;
+	    	static uint16_t port = atoi(portStr);
+	    	os_printf("Port: %d\n",port);
+	    	xTaskCreate(UDPSend, (const signed char*)"UDPSend", 256, &port, tskIDLE_PRIORITY + 2, NULL);
+
+			XMLRequest* response = new TopicResponse;
+			strcpy(buffer, response->getData());
+
+	    }
+	}
+
 	static void start()
 	{
-		HTTPServer* server = new HTTPServer("HTTPServer", XMLRPC_PORT);
+		HTTPServer* server = new HTTPServer("HTTPServer", XMLRPC_PORT, XMLRPCServerReceiveCallback);
 	}
 
 	static void registerPublisher(const char* callerID, const char* topic, const char* msgType)
@@ -390,7 +476,7 @@ public:
 		static uint16_t publisherID = 1;
 		char clientname[32];
 		sprintf(clientname, "pclient%d", publisherID++);
-		HTTPClient* client = new HTTPClient(clientname, req->getData(), 1024, port++, SERVER_IP_ADDRESS, 11311);
+		HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, SERVER_IP_ADDRESS, 11311);
 	}
 
 	static void extractURI(const char* uri, char* ip, uint16_t* port)
@@ -453,7 +539,7 @@ public:
 		static uint16_t subscriberID = 1;
 		char clientname[32];
 		sprintf(clientname, "sclient%d", subscriberID++);
-		HTTPClient* client = new HTTPClient(clientname, req->getData(), 1024, port++, SERVER_IP_ADDRESS, 11311, connectPublishers);
+		HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, SERVER_IP_ADDRESS, 11311, connectPublishers);
 	}
 	static void UDPreceive(void* params)
 	{
@@ -524,7 +610,7 @@ public:
 
 	static void requestTopicResponse(const char* data)
 	{
-		xTaskCreate(UDPreceive, (const signed char*)"myudp1", 128, NULL, tskIDLE_PRIORITY + 3, NULL);
+		xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 128, NULL, tskIDLE_PRIORITY + 3, NULL);
 	}
 
 	static void requestTopic(const char* ip, uint16_t serverPort)
@@ -534,12 +620,6 @@ public:
 		static uint16_t reqID = 1;
 		char clientname[32];
 		sprintf(clientname, "reqclient%d", reqID++);
-		HTTPClient* client = new HTTPClient(clientname, req->getData(), 1024, port++, ip, serverPort, requestTopicResponse);
-	}
-
-
-	static void onReceive(const char* method, const char* message)
-	{
-
+		HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, ip, serverPort, requestTopicResponse);
 	}
 };
