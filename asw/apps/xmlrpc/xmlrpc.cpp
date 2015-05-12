@@ -10,6 +10,7 @@ extern "C" void os_printf(char* fmt, ...);
 #include "std_msgs/Int32.h"
 #include "std_msgs/ColorRGBA.h"
 #include "sensor_msgs/Range.h"
+#include "rcl.h"
 using namespace std_msgs;
 using namespace sensor_msgs;
 
@@ -20,6 +21,17 @@ void serializeMsg(const ros::Msg& msg, unsigned char* outbuffer)
 	memcpy(outbuffer, &offset, sizeof(uint32_t));
 	memcpy(outbuffer+sizeof(uint32_t), stream1, offset);
 }
+
+void publishMsg(const ros::Msg& msg, EndPoint* endpoint)
+{
+	UDPMessage udpMessage;
+	memcpy(&udpMessage.endpoint, endpoint, sizeof(EndPoint));
+	serializeMsg(msg, (unsigned char*)udpMessage.data);
+	UDPHandler* uh = UDPHandler::instance();
+	uh->enqueueMessage(&udpMessage);
+}
+
+
 
 static uint16_t tcpPort = 50000;
 /*
@@ -129,14 +141,25 @@ void xmlrpc_task(void* p)
 	serializeMsg(str, stream2);
 
 
+	char string[] = "Hello ROS!";
+	String str1;
+	str1.data = string;
+
+	EndPoint endpoint;
+	endpoint.connectionID = 3;
+	endpoint.ip.addr = inet_addr("10.3.84.100");
+
+
 	//TODO: Why does system crash with rostopic echo chatter?
 	//TODO: Connection won't be initialized if PC side subscriber is created before STM32 side publisher.
-	for (;;)
-	{
-		//connection->sendMessage((const char*)stream);
-		//connection2->sendMessage((const char*)stream2);
-		vTaskDelay(200);
-	}
+
+	LOOP(200,
+
+			//connection->sendMessage((const char*)stream);
+			//connection2->sendMessage((const char*)stream2);
+			publishMsg(str, &endpoint);
+			vTaskDelay(200);
+	)
 
 	vTaskDelete(NULL);
 }

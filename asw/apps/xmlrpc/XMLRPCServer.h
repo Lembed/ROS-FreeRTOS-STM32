@@ -375,11 +375,22 @@ public:
 class TopicResponse : public XMLRequest
 {
 public:
-	TopicResponse()
+	TopicResponse(const char* localIP, const uint16_t& localPort, const uint32_t& connectionID)
 	{
+		char tmp[15];
 		strcpy(xml, "<?xml version=\"1.0\"?><methodResponse><params><param><value><array><data><value><i4>1</i4></value>");
-		strcat(xml, "<value></value><value><array><data><value>UDPROS</value><value>10.3.84.99</value><value><i4>46552</i4>");
-		strcat(xml, "</value><value><i4>3</i4></value><value><i4>1500</i4></value><value><base64>");
+		strcat(xml, "<value></value><value><array><data><value>UDPROS</value><value>");
+		strcat(xml, localIP);
+		strcat(xml, "</value><value><i4>");
+		sprintf(tmp, "%d", localPort);
+		strcat(xml, tmp);
+		strcat(xml, "</i4>");
+		strcat(xml, "</value><value><i4>");
+		sprintf(tmp, "%d", connectionID);
+		strcat(xml, tmp);
+		strcat(xml, "</i4>");
+		strcat(xml, "</value><value><i4>1500</i4></value><value><base64>");
+		// TODO: Build the base64encoded data (Connection Header) dynamically.
 		strcat(xml, "EAAAAGNhbGxlcmlkPS90YWxrZXInAAAAbWQ1c3VtPTk5MmNlOGExNjg3Y2VjOGM4YmQ4ODNlYzczY2E0MWQxHwAAAG1lc3NhZ2VfZGVmaW5pdGlvbj1zdHJpbmcgZGF0YQoOAAAAdG9waWM9L2NoYXR0ZXIUAAAAdHlwZT1zdGRfbXNncy9TdHJpbmc=");
 		strcat(xml, "</base64></value></data></array></value></data></array></value></param></params></methodResponse>");
 
@@ -391,6 +402,74 @@ public:
 
 };
 
+#define QUEUE_LEN 10
+#define QUEUE_MSG_SIZE sizeof(UDPMessage)
+#define RXTIMEOUT 100
+
+typedef struct EndPoint
+{
+	uint32_t connectionID;
+	struct ip_addr ip;
+	uint16_t port;
+} EndPoint;
+
+typedef struct UDPMessage
+{
+	EndPoint endpoint;
+	char data[118];
+} UDPMessage;
+
+class UDPHandler
+{
+private:
+	xQueueHandle qHandle;
+	static UDPHandler* _instance;
+	UDPHandler()
+	{
+		qHandle = xQueueCreate(QUEUE_LEN, QUEUE_MSG_SIZE);
+	}
+public:
+	void enqueueMessage(const UDPMessage *msg)
+	{
+		// Initialize memory (in stack) for message.
+		unsigned char data[QUEUE_MSG_SIZE];
+		// Copy message into the previously initialized memory.
+		memcpy(data, msg, QUEUE_MSG_SIZE);
+		// Try to send message if queue is non-full.
+		// TODO: Check if we are still "connected" to the end point. (i.e. the node at the remote end is still running)
+		if (xQueueSend(qHandle, &data, 0))
+			os_printf("Enqueueing data!\n");
+		else
+			os_printf("Queue is full!\n");
+	}
+	void dequeueMessage(UDPMessage* msg)
+	{
+		// Initialize memory (in stack) for message.
+		unsigned char data[QUEUE_MSG_SIZE];
+
+		// Try to receive message, put the task to sleep for at most RXTIMEOUT ticks if queue is empty.
+		for(;;)
+		{
+			if (xQueueReceive(qHandle, data, RXTIMEOUT))
+			{
+				memcpy(msg, data, QUEUE_MSG_SIZE);
+				break;
+			}
+		}
+	}
+    static UDPHandler *instance()
+    {
+        if (!_instance)
+          _instance = new UDPHandler;
+        return _instance;
+    }
+};
+
+UDPHandler* UDPHandler::_instance = NULL;
+
+
+
+#define UDP_LOCAL_PORT 46552
 
 #define MASTER_URI "10.3.84.100:11311"
 class XMLRPCServer
@@ -401,46 +480,34 @@ private:
 public:
 	static void UDPSend(void* params)
 	{
+		// TODO: port should already be included in the dequeued message.
 		uint16_t port = *((uint16_t*)params);
 		os_printf("My port:%d\n", port);
-
+		UDPHandler* uh = UDPHandler::instance();
 		struct netconn* conn = netconn_new( NETCONN_UDP );
-	    netconn_bind(conn, IP_ADDR_ANY, 46552);
-	    struct ip_addr ip;
-	    ip.addr = inet_addr("10.3.84.100");
-	    netconn_connect(conn, &ip, port);
-	    char msg[] = {
-	    		0x03, 0x00, 0x00, 0x00,
-	    		0x00, 0x01, 0x01, 0x00,
-				0x15, 0x00, 0x00, 0x00,
-				0x11, 0x00, 0x00, 0x00,
-				0x68, 0x65, 0x6c, 0x6c,
-				0x6f, 0x20, 0x77, 0x6f,
-				0x72, 0x6c, 0x64, 0x5f,
-				0x20, 0x35, 0x38, 0x36,
-				0x31
-	    };
-
-
+	    netconn_bind(conn, IP_ADDR_ANY, UDP_LOCAL_PORT);
 		for(;;)
 		{
-				// Try to receive message, block the task for at most UDPReceiveTimeout ticks if queue is empty.
-				//if (xQueueReceive(vars->queueHandle, &msg, vars->queueReceiveTimeout > 0 ? vars->queueReceiveTimeout : 100))
-				//if (xQueueReceive(LogQueueHandle, &msg, 100))
-				{
-					// Methods for UDP send.
-					os_printf("Sending... %s\n", &msg[16]);
-					struct netbuf *buf = netbuf_new();
-					msg[5]++;
-				    void* data = netbuf_alloc(buf, sizeof(msg)); // Also deallocated with netbuf_delete(buf)
-				    memcpy (data, msg, sizeof (msg));
-				    netconn_send(conn, buf);
-				    netbuf_delete(buf); // Deallocate packet buffer
+			UDPMessage msg;
+			uh->dequeueMessage(&msg);
+			msg.endpoint.port = port; // TODO: port should already be included in the dequeued message.
+			netconn_connect(conn, &msg.endpoint.ip, msg.endpoint.port);
+			struct netbuf *buf = netbuf_new();
+		    static char msgHeader[] = {
+		    		0x03, 0x00, 0x00, 0x00,
+		    		0x00, 0x01, 0x01, 0x00
+		    };
+			uint32_t msgLen = *((uint32_t*) msg.data)+4;
+		    void* data = netbuf_alloc(buf, msgLen+sizeof(msgHeader)); // Also deallocated with netbuf_delete(buf)
 
-				    vTaskDelay(100);
-				}
+		    msgHeader[5]++;
 
+		    memcpy (data, msgHeader, sizeof (msgHeader));
+		    memcpy (data+sizeof (msgHeader), msg.data, msgLen);
+		    netconn_send(conn, buf);
+		    netbuf_delete(buf);
 		}
+
 	}
 	static void XMLRPCServerReceiveCallback(const char* data, char* buffer)
 	{
@@ -456,9 +523,10 @@ public:
 	    	portStr[pos2-pos-4] = 0;
 	    	static uint16_t port = atoi(portStr);
 	    	os_printf("Port: %d\n",port);
+
 	    	xTaskCreate(UDPSend, (const signed char*)"UDPSend", 256, &port, tskIDLE_PRIORITY + 2, NULL);
 
-			XMLRequest* response = new TopicResponse;
+			XMLRequest* response = new TopicResponse(SENDER_IP_ADDR, UDP_LOCAL_PORT, 3);
 			strcpy(buffer, response->getData());
 
 	    }
