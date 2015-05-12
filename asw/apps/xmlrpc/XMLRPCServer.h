@@ -19,7 +19,6 @@
 char topics[TOPIC_COUNT][MAX_TOPIC_LEN];
 #include "netconf.h"
 
-
 class TCPClientBase
 {
 private:
@@ -415,9 +414,38 @@ typedef struct EndPoint
 
 typedef struct UDPMessage
 {
-	EndPoint endpoint;
-	char data[118];
+	char topic[MAX_TOPIC_LEN];
+	char data[128];
 } UDPMessage;
+
+#define MAX_UDP_CONNECTIONS 20
+
+
+
+
+class UDPConnection
+{
+private:
+	static uint32_t ID;
+	uint16_t port;
+public:
+	UDPConnection(uint16_t port)
+	{
+		ID++;
+		this->port = port;
+	}
+	uint32_t getID() const { return ID; }
+	uint16_t getPort() const { return port; }
+};
+#include "rcl.h"
+#include "msg.h"
+
+
+
+uint32_t UDPConnection::ID = 10000;
+
+
+
 
 class UDPHandler
 {
@@ -466,12 +494,70 @@ public:
 };
 
 UDPHandler* UDPHandler::_instance = NULL;
-
-
-
 #define UDP_LOCAL_PORT 46552
 
 #define MASTER_URI "10.3.84.100:11311"
+
+class TopicWriter
+{
+	char topic[MAX_TOPIC_LEN];
+	uint16_t lastConnectionsIndex;
+	UDPConnection* connections[MAX_UDP_CONNECTIONS];
+	xQueueHandle qHandle;
+public:
+	TopicWriter(const char* topic)
+	{
+		strcpy(this->topic, topic);
+		lastConnectionsIndex = 0;
+		qHandle = xQueueCreate(QUEUE_LEN, QUEUE_MSG_SIZE);
+	}
+	void serializeMsg(const ros::Msg& msg, unsigned char* outbuffer)
+	{
+		unsigned char stream1[100];
+		uint32_t offset = msg.serialize(stream1);
+		memcpy(outbuffer, &offset, sizeof(uint32_t));
+		memcpy(outbuffer+sizeof(uint32_t), stream1, offset);
+	}
+
+	void publishMsg(const ros::Msg& msg)
+	{
+		UDPMessage udpMessage;
+		strcpy(udpMessage.topic, topic);
+		serializeMsg(msg, (unsigned char*)udpMessage.data);
+		UDPHandler* uh = UDPHandler::instance();
+		uh->enqueueMessage(&udpMessage);
+	}
+	UDPConnection* getConnection(uint16_t port)
+	{
+		if (lastConnectionsIndex < MAX_TOPIC_LEN)
+		{
+			for(uint16_t i=0; i<MAX_UDP_CONNECTIONS; i++)
+			{
+				if (connections[i] != NULL && connections[i]->getPort() == port)
+				{
+					return connections[i];
+				}
+			}
+
+			UDPConnection* conn = new UDPConnection(port);
+			connections[lastConnectionsIndex++] = conn;
+			return conn;
+		}
+		return NULL;
+	}
+	UDPConnection* const* getConnections()
+	{
+		return connections;
+	}
+	const char* getTopic()
+	{
+		return topic;
+	}
+};
+
+#define MAX_TOPIC_WRITERS 10
+TopicWriter* topicWriters[MAX_TOPIC_WRITERS];
+
 class XMLRPCServer
 {
 private:
@@ -480,40 +566,101 @@ private:
 public:
 	static void UDPSend(void* params)
 	{
-		// TODO: port should already be included in the dequeued message.
-		uint16_t port = *((uint16_t*)params);
-		os_printf("My port:%d\n", port);
 		UDPHandler* uh = UDPHandler::instance();
 		struct netconn* conn = netconn_new( NETCONN_UDP );
 	    netconn_bind(conn, IP_ADDR_ANY, UDP_LOCAL_PORT);
+	    static uint8_t counter = 1;
+
 		for(;;)
 		{
 			UDPMessage msg;
 			uh->dequeueMessage(&msg);
-			msg.endpoint.port = port; // TODO: port should already be included in the dequeued message.
-			netconn_connect(conn, &msg.endpoint.ip, msg.endpoint.port);
-			struct netbuf *buf = netbuf_new();
-		    static char msgHeader[] = {
-		    		0x03, 0x00, 0x00, 0x00,
-		    		0x00, 0x01, 0x01, 0x00
-		    };
-			uint32_t msgLen = *((uint32_t*) msg.data)+4;
-		    void* data = netbuf_alloc(buf, msgLen+sizeof(msgHeader)); // Also deallocated with netbuf_delete(buf)
 
-		    msgHeader[5]++;
+			TopicWriter* tw = getTopicWriter(msg.topic);
+			if (tw != NULL)
+			{
+				EndPoint endpoint;
+				endpoint.ip.addr = inet_addr("10.3.84.100");
+				UDPConnection* const* connections = tw->getConnections();
+				if (connections != NULL)
+				{
+					for(int i= 0; i<MAX_UDP_CONNECTIONS; i++)
+					{
+						const UDPConnection* connection = connections[i];
+						if (connection)
+						{
+							endpoint.port = connection->getPort();
+							endpoint.connectionID = connection->getID();
+							err_t err = netconn_connect(conn, &endpoint.ip, endpoint.port);
+							os_printf("Connecting %s:%d, err:%d\n",endpoint.ip, endpoint.port, err);
+							struct netbuf *buf = netbuf_new();
+							char msgHeader[8];
+							memcpy(&msgHeader[0], &endpoint.connectionID, sizeof(uint32_t));
+							msgHeader[4] = 0;
+							msgHeader[5] = counter++;
+							msgHeader[6] = 0x01;
+							msgHeader[7] = 0;
+							uint32_t msgLen = *((uint32_t*) msg.data)+4;
+							void* data = netbuf_alloc(buf, msgLen+sizeof(msgHeader)); // Also deallocated with netbuf_delete(buf)
 
-		    memcpy (data, msgHeader, sizeof (msgHeader));
-		    memcpy (data+sizeof (msgHeader), msg.data, msgLen);
-		    netconn_send(conn, buf);
-		    netbuf_delete(buf);
+							memcpy (data, msgHeader, sizeof (msgHeader));
+							memcpy (data+sizeof (msgHeader), msg.data, msgLen);
+							netconn_send(conn, buf);
+							netbuf_delete(buf);
+						}
+					}
+				}
+			}
 		}
 
 	}
+	static TopicWriter* getTopicWriter(const char* topic)
+	{
+		for(uint16_t i=0; i<MAX_TOPIC_WRITERS;i++)
+		{
+			if (topicWriters[i] != NULL)
+			{
+				TopicWriter* tw = topicWriters[i];
+				if (!strcmp(tw->getTopic(), topic))
+				{
+					return tw;
+				}
+			}
+		}
+		return NULL;
+	}
 	static void XMLRPCServerReceiveCallback(const char* data, char* buffer)
 	{
+		{
+	    	char* pos = strstr((char*)data, "<methodName>");
+			char* pos2 = strstr((char*)data, "</methodName>");
+			if (pos2 > pos)
+			{
+				  char methodName[pos2-pos-12];
+			  strncpy (methodName, pos+12, pos2-pos-12);
+			  methodName[pos2-pos-12] = 0;
+			  if (!strcmp(methodName, "requestTopic"))
+			  {
+				  os_printf("name:%s\n",methodName);
+			  }
+			  else
+				  return;
+			}
+	    }
+	    os_printf("Strlen:%d\n",strlen(data));
+
+	    /*for (int i=0; i<strlen(data)+128; i=i+127)
+	    {
+	    	static char temp[128];
+	    	strncpy(temp, data+i,127);
+	    	temp[127] = 0;
+	    	os_printf(temp);
+	    }
+	    os_printf("\n");*/
+
+	    // TODO: Why does strstr(data, "<i4>") not work? Why does it work sometimes with the data+550 hack?
 		char* pos = strstr(data+550, "<i4>");
 	    char* pos2 = strstr(data+550, "</i4>");
-
 	    os_printf("pos:%d, pos2:%d\n", pos, pos2);
 
 	    if (pos < pos2)
@@ -521,30 +668,61 @@ public:
 	    	char portStr[pos2-pos-5];
 	    	strncpy (portStr, pos+4, pos2-pos-4);
 	    	portStr[pos2-pos-4] = 0;
-	    	static uint16_t port = atoi(portStr);
+	    	uint16_t port = atoi(portStr);
 	    	os_printf("Port: %d\n",port);
 
-	    	xTaskCreate(UDPSend, (const signed char*)"UDPSend", 256, &port, tskIDLE_PRIORITY + 2, NULL);
 
-			XMLRequest* response = new TopicResponse(SENDER_IP_ADDR, UDP_LOCAL_PORT, 3);
-			strcpy(buffer, response->getData());
+	    	char* pos3 = strstr((char*)data, "</value></param><param><value>/");
+	    	char* pos4;
+	    	int len = strlen("</value></param><param><value>/");
 
+	    	if (pos3)
+	    	{
+	    		pos4 = strstr((char*)pos3+len, "</value>");
+	    		//os_printf("_pos:%d, _pos2:%d\n", pos3, pos4);
+	    		if (pos4 > pos3)
+	    		{
+					char topic[pos4-pos3-len+1];
+					strncpy (topic, pos3+len, pos4-pos3-len);
+					topic[pos4-pos3-len] = 0;
+					os_printf("_pos:%d, _pos2:%d, %s\n", pos3, pos4, topic);
+
+					// TODO: Move UDPConnection to registerPublishers. Then extract topic name from data. Afterwards, find the corresponding connection.
+					TopicWriter* tw = getTopicWriter(topic);
+					if (tw != NULL)
+					{
+						UDPConnection* connection = tw->getConnection(port);
+						if (connection!= NULL)
+						{
+							os_printf("Connection ID: %d\n", connection->getID());
+							XMLRequest* response = new TopicResponse(SENDER_IP_ADDR, UDP_LOCAL_PORT, connection->getID());
+							strcpy(buffer, response->getData());
+						}
+					}
+	    		}
+	    	}
 	    }
 	}
 
 	static void start()
 	{
 		HTTPServer* server = new HTTPServer("HTTPServer", XMLRPC_PORT, XMLRPCServerReceiveCallback);
+		xTaskCreate(UDPSend, (const signed char*)"UDPSend", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
 	}
 
-	static void registerPublisher(const char* callerID, const char* topic, const char* msgType)
+	static TopicWriter* registerPublisher(const char* callerID, const char* topic, const char* msgType)
 	{
 		static uint16_t port = 41000;
 		XMLRequest* req = new RegisterRequest("registerPublisher", MASTER_URI, callerID, topic, msgType);
 		static uint16_t publisherID = 1;
 		char clientname[32];
 		sprintf(clientname, "pclient%d", publisherID++);
+		static uint16_t lastTopicWriterIndex = 0;
+		TopicWriter* tw = new TopicWriter(topic);
+		topicWriters[lastTopicWriterIndex++] = tw;
+
 		HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, SERVER_IP_ADDRESS, 11311);
+		return tw;
 	}
 
 	static void extractURI(const char* uri, char* ip, uint16_t* port)
@@ -588,7 +766,7 @@ public:
 					extractURI(uri, ip, &port);
 					os_printf("URI: %s:::%d\n", ip, port);
 					//os_printf("URI: %s\n", uri);
-
+					// Check if this uri already exists in a "PublisherURIs" list.
 					requestTopic(SERVER_IP_ADDRESS, port);
 					break; // TODO: remove this!
 				}
@@ -678,6 +856,7 @@ public:
 
 	static void requestTopicResponse(const char* data)
 	{
+		// TODO: extract connectionID from data and create a new TopicReader instance with it
 		xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 128, NULL, tskIDLE_PRIORITY + 3, NULL);
 	}
 

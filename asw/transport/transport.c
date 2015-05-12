@@ -88,7 +88,7 @@ void tr_UDPreceive(void* params)
 				// Start periodic loop.
 				while (1)
 				{
-					buf = netconn_recv(conn);
+					buf = netconn_recv(conn); // TODO: check if this puts the task to sleep
 					if (buf!= NULL)
 					{
 						// Copy received data into message.
@@ -99,7 +99,7 @@ void tr_UDPreceive(void* params)
 						netbuf_delete(buf);
 					}
 					// Use delay until to guarantee periodic execution of each loop iteration.
-					vTaskDelayUntil(&xLastWakeTime, UDP_RX_PERIOD);
+					vTaskDelayUntil(&xLastWakeTime, UDP_RX_PERIOD); // this delay should be removed if netconn_recv is waiting.
 				}
 		    }
 		    else

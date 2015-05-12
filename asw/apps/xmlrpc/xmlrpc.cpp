@@ -14,22 +14,7 @@ extern "C" void os_printf(char* fmt, ...);
 using namespace std_msgs;
 using namespace sensor_msgs;
 
-void serializeMsg(const ros::Msg& msg, unsigned char* outbuffer)
-{
-	unsigned char stream1[100];
-	uint32_t offset = msg.serialize(stream1);
-	memcpy(outbuffer, &offset, sizeof(uint32_t));
-	memcpy(outbuffer+sizeof(uint32_t), stream1, offset);
-}
 
-void publishMsg(const ros::Msg& msg, EndPoint* endpoint)
-{
-	UDPMessage udpMessage;
-	memcpy(&udpMessage.endpoint, endpoint, sizeof(EndPoint));
-	serializeMsg(msg, (unsigned char*)udpMessage.data);
-	UDPHandler* uh = UDPHandler::instance();
-	uh->enqueueMessage(&udpMessage);
-}
 
 
 
@@ -108,7 +93,8 @@ void xmlrpc_task(void* p)
 	//XMLRPCHandler::registerPublisher("talker", "chatter", "std_msgs/String");
 	//vTaskDelay(4000);
 
-	XMLRPCServer::registerPublisher("talker", "chatter", "std_msgs/String");
+	TopicWriter* tw = XMLRPCServer::registerPublisher("talker", "chatter", "std_msgs/String");
+	TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker", "chatter2", "std_msgs/String");
 	//XMLRPCServer::registerPublisher("talker1", "chatter", "std_msgs/String");
 	//XMLRPCServer::registerPublisher("talker2", "chatter", "std_msgs/String");
 	//XMLRPCServer::registerSubscriber("listener", "chatter", "std_msgs/String");
@@ -135,32 +121,20 @@ void xmlrpc_task(void* p)
 	str.max_range = 2.0f;
 	str.range = 0.5f;
 
-	unsigned char stream[100];
-	serializeMsg(str, stream);
-	unsigned char stream2[100];
-	serializeMsg(str, stream2);
-
-
 	char string[] = "Hello ROS!";
 	String str1;
 	str1.data = string;
-
-	EndPoint endpoint;
-	endpoint.connectionID = 3;
-	endpoint.ip.addr = inet_addr("10.3.84.100");
 
 
 	//TODO: Why does system crash with rostopic echo chatter?
 	//TODO: Connection won't be initialized if PC side subscriber is created before STM32 side publisher.
 
 	LOOP(200,
-
-			//connection->sendMessage((const char*)stream);
-			//connection2->sendMessage((const char*)stream2);
-			publishMsg(str, &endpoint);
+			//publishMsg(str1, &endpoint1);
+			tw->publishMsg(str1);
+			tw2->publishMsg(str);
 			vTaskDelay(200);
 	)
 
 	vTaskDelete(NULL);
 }
-
