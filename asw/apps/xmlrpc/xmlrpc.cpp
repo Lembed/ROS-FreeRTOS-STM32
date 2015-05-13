@@ -93,11 +93,14 @@ void xmlrpc_task(void* p)
 	//XMLRPCHandler::registerPublisher("talker", "chatter", "std_msgs/String");
 	//vTaskDelay(4000);
 
-	TopicWriter* tw = XMLRPCServer::registerPublisher("talker", "chatter", "std_msgs/String");
-	TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker", "chatter2", "std_msgs/String");
+	TopicWriter* tw = XMLRPCServer::registerPublisher("talker3", "chatter", "std_msgs/String");
+
 	//XMLRPCServer::registerPublisher("talker1", "chatter", "std_msgs/String");
 	//XMLRPCServer::registerPublisher("talker2", "chatter", "std_msgs/String");
-	//XMLRPCServer::registerSubscriber("listener", "chatter", "std_msgs/String");
+	TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker2", "chatter2", "std_msgs/String");
+	XMLRPCServer::registerSubscriber("listener", "chatter", "std_msgs/String");
+
+
 
 	//XMLRPCHandler::waitForRequest();
 
@@ -131,8 +134,8 @@ void xmlrpc_task(void* p)
 
 	LOOP(200,
 			//publishMsg(str1, &endpoint1);
-			tw->publishMsg(str1);
-			tw2->publishMsg(str);
+			//tw->publishMsg(str1);
+			//tw2->publishMsg(str);
 			vTaskDelay(200);
 	)
 

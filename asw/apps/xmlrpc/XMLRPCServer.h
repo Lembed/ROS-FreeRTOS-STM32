@@ -19,122 +19,125 @@
 char topics[TOPIC_COUNT][MAX_TOPIC_LEN];
 #include "netconf.h"
 
-class TCPClientBase
+#define TCP_DATA_SIZE 1200
+class HTTPClient
 {
 private:
+	struct TCPData
+	{
+		uint16_t serverPort;
+		uint32_t serverIP;
+		char data[TCP_DATA_SIZE];
+	};
+
 	static void tcptask(void* arg)
 	{
-		TCPClientBase* self = (TCPClientBase*) arg;
-		int socket_fd;
-	    struct sockaddr_in sa,ra;
+		static uint16_t port = 30000;
+		HTTPClient* self = (HTTPClient*) arg;
 
-	    int recv_data;  // Creates an TCP socket (SOCK_STREAM) with Internet Protocol Family (PF_INET).
-	    // Protocol family and Address family related. For example PF_INET Protocol Family and AF_INET family are coupled.
 
-	    socket_fd = socket(PF_INET, SOCK_STREAM, 0);
+	    TCPData data;
 
-	    if ( socket_fd < 0 )
+	    for(;;)
 	    {
-
-	        os_printf("socket call failed");
-
-	    }
-
-	    memset(&sa, 0, sizeof(struct sockaddr_in));
-	    sa.sin_family = AF_INET;
-	    sa.sin_addr.s_addr = inet_addr(SENDER_IP_ADDR);
-	    sa.sin_port = htons(self->port);
-
-	    os_printf("Binding to Port Number %d ,IP address %s\n", self->port, SENDER_IP_ADDR);
-	    /* Bind the TCP socket to the port SENDER_PORT_NUM and to the current
-	    * machines IP address (Its defined by SENDER_IP_ADDR).
-	    * Once bind is successful for UDP sockets application can operate
-	    * on the socket descriptor for sending or receiving data.
-	    */
-	    if (bind(socket_fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) == -1)
-	    {
-	    os_printf("Bind to Port Number %d ,IP address %s failed\n", self->port, SENDER_IP_ADDR);
-	    close(socket_fd);
-
-	    }
-	    // Receiver connects to server ip-address.
-
-	    memset(&ra, 0, sizeof(struct sockaddr_in));
-	    ra.sin_family = AF_INET;
-	    ra.sin_addr.s_addr = inet_addr(self->serverIP);
-	    ra.sin_port = htons(self->serverPort);
-	    os_printf("Connecting to Port Number %d ,IP address %s\n", self->serverPort, self->serverIP);
-
-
-	    if(connect(socket_fd,(const sockaddr*)&ra,sizeof(struct sockaddr_in)) < 0)
-	    {
-
-	        os_printf("connect failed \n");
-	        close(socket_fd);
-	    }
-
-	    else
-	    {
-			self->onConnected();
-	    	os_printf("bufferLen:%d\n", strlen(self->buffer));
-			send(socket_fd, self->buffer, strlen(self->buffer), 0);
-			self->onSent();
-
-			recv_data = recv(socket_fd,self->rxBuffer, sizeof(self->rxBuffer), 0);
-			if(recv_data < 0)
+			if (xQueueReceive(self->qHandle, &data, 100))
 			{
+			    port++;
 
-				os_printf("recv failed \n");
-				close(socket_fd);
+				int socket_fd;
+			    struct sockaddr_in sa,ra;
 
+			    int recv_data;  // Creates an TCP socket (SOCK_STREAM) with Internet Protocol Family (PF_INET).
+			    // Protocol family and Address family related. For example PF_INET Protocol Family and AF_INET family are coupled.
+
+			    socket_fd = socket(PF_INET, SOCK_STREAM, 0);
+
+			    if ( socket_fd < 0 )
+			    {
+
+			        os_printf("socket call failed");
+
+			    }
+
+
+			    memset(&sa, 0, sizeof(struct sockaddr_in));
+			    sa.sin_family = AF_INET;
+			    sa.sin_addr.s_addr = inet_addr(SENDER_IP_ADDR);
+			    sa.sin_port = htons(port);
+
+			    os_printf("Binding to Port Number %d ,IP address %s\n", port, SENDER_IP_ADDR);
+			    /* Bind the TCP socket to the port SENDER_PORT_NUM and to the current
+			    * machines IP address (Its defined by SENDER_IP_ADDR).
+			    * Once bind is successful for UDP sockets application can operate
+			    * on the socket descriptor for sending or receiving data.
+			    */
+			    if (bind(socket_fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) == -1)
+			    {
+			    os_printf("Bind to Port Number %d ,IP address %s failed\n", port, SENDER_IP_ADDR);
+			    close(socket_fd);
+
+			    }
+
+				os_printf("Data received! %d\n", data.serverPort);
+
+
+				// Receiver connects to server ip-address.
+				memset(&ra, 0, sizeof(struct sockaddr_in));
+				ra.sin_family = AF_INET;
+				ra.sin_addr.s_addr = data.serverIP;
+				ra.sin_port = htons(data.serverPort);
+				os_printf("Connecting to Port Number %d ,IP address %08x\n", data.serverPort, data.serverIP);
+
+
+				if(connect(socket_fd,(const sockaddr*)&ra,sizeof(struct sockaddr_in)) < 0)
+				{
+
+					os_printf("connect failed \n");
+					close(socket_fd);
+				}
+
+				else
+				{
+					self->onConnected(data.serverPort);
+					os_printf("bufferLen:%d\n", strlen(data.data));
+					send(socket_fd, data.data, strlen(data.data), 0);
+					self->onSent();
+
+					recv_data = recv(socket_fd,self->rxBuffer, sizeof(self->rxBuffer), 0);
+					if(recv_data < 0)
+					{
+
+						os_printf("recv failed \n");
+						close(socket_fd);
+
+					}
+					else
+					{
+						self->onReceive(self->rxBuffer);
+					}
+
+					close(socket_fd);
+				}
 			}
-			else
-			{
-				self->onReceive(self->rxBuffer);
-			}
-
-			close(socket_fd);
 	    }
 
 	    vTaskDelete(NULL);
 	}
-public:
-	TCPClientBase(const char* taskName, const char* buffer, uint16_t bufferLength, uint16_t port, const char* serverIP, uint16_t serverPort)
-	{
-		this->buffer = (char*)buffer;
-		this->port = port;
-		this->serverPort = serverPort;
-		this->serverIP = serverIP;
-		//memcpy(&this->serverIP, serverIP, sizeof(struct ip_addr));
-		xTaskCreate(tcptask, (const signed char*)taskName, 512, this, tskIDLE_PRIORITY + 2, NULL);
-	}
-private:
-	char* buffer;
-	char rxBuffer[1024];
-	uint16_t bufferLength;
-protected:
-	uint16_t port, serverPort;
-	const char* serverIP;
-	virtual void onConnected() = 0;
-	virtual void onReceive(const char* data) = 0;
-	virtual void onSent() = 0;
 
-};
 
-class HTTPClient : public TCPClientBase
-{
-public:
-	HTTPClient(const char* taskName, const char* buffer, uint16_t bufferLength, uint16_t port, const char* serverIP, uint16_t serverPort, void(*receiveCallback)(const char* data) = NULL)
-	: TCPClientBase(taskName, buffer, bufferLength, port, serverIP, serverPort)
+	HTTPClient()
 	{
-		this->receiveCallback = receiveCallback;
+		qHandle = xQueueCreate(4, sizeof(TCPData));
+		xTaskCreate(tcptask, (const signed char*)"HTTPClient", 2048, this, tskIDLE_PRIORITY + 2, NULL);
 	}
-private:
-	virtual void onConnected()
+
+	static HTTPClient* _instance;
+
+	void onConnected(uint16_t port)
 	{
-		os_printf("Connected, serverport:%d!\n", serverPort);
+		os_printf("Connected, serverport:%d!\n", port);
 	}
-	virtual void onReceive(const char* data)
+	void onReceive(const char* data)
 	{
 		os_printf("Received %d bytes!\n", strlen(data));
 		if (receiveCallback != NULL)
@@ -142,13 +145,37 @@ private:
 			receiveCallback(data);
 		}
 	}
-	virtual void onSent()
+	void onSent()
 	{
 		os_printf("Sent!\n");
 	}
 	void(*receiveCallback)(const char* data);
 
+	xQueueHandle qHandle;
+	char rxBuffer[1024];
+public:
+    static HTTPClient *instance()
+    {
+        if (!_instance)
+          _instance = new HTTPClient();
+        return _instance;
+    }
+    void sendData(const char* data, uint16_t port, void(*receiveCallback)(const char* data) = NULL)
+    {
+    	TCPData tcpData;
+    	memcpy(tcpData.data, data, TCP_DATA_SIZE);
+    	tcpData.serverIP = inet_addr("10.3.84.100");
+    	tcpData.serverPort = port;
+    	this->receiveCallback = receiveCallback;
+    	if (xQueueSend(qHandle, &tcpData, 0))
+			os_printf("Enqueueing data!\n");
+		else
+			os_printf("Queue is full!\n");
+    }
+
 };
+
+HTTPClient* HTTPClient::_instance = NULL;
 
 
 class TCPServerBase
@@ -612,7 +639,6 @@ public:
 				}
 			}
 		}
-
 	}
 	static TopicWriter* getTopicWriter(const char* topic)
 	{
@@ -720,8 +746,8 @@ public:
 		static uint16_t lastTopicWriterIndex = 0;
 		TopicWriter* tw = new TopicWriter(topic);
 		topicWriters[lastTopicWriterIndex++] = tw;
-
-		HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, SERVER_IP_ADDRESS, 11311);
+		HTTPClient::instance()->sendData(req->getData(), 11311);
+		//HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, SERVER_IP_ADDRESS, 11311);
 		return tw;
 	}
 
@@ -767,8 +793,11 @@ public:
 					os_printf("URI: %s:::%d\n", ip, port);
 					//os_printf("URI: %s\n", uri);
 					// Check if this uri already exists in a "PublisherURIs" list.
+					if (strcmp(ip, "10.3.84.99"))
+					{
 					requestTopic(SERVER_IP_ADDRESS, port);
 					break; // TODO: remove this!
+					}
 				}
 				pos = pos3;
 			}
@@ -785,7 +814,8 @@ public:
 		static uint16_t subscriberID = 1;
 		char clientname[32];
 		sprintf(clientname, "sclient%d", subscriberID++);
-		HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, SERVER_IP_ADDRESS, 11311, connectPublishers);
+		HTTPClient::instance()->sendData(req->getData(), 11311, connectPublishers);
+		//HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, SERVER_IP_ADDRESS, 11311, connectPublishers);
 	}
 	static void UDPreceive(void* params)
 	{
@@ -867,6 +897,8 @@ public:
 		static uint16_t reqID = 1;
 		char clientname[32];
 		sprintf(clientname, "reqclient%d", reqID++);
-		HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, ip, serverPort, requestTopicResponse);
+		HTTPClient::instance()->sendData(req->getData(), serverPort, requestTopicResponse);
+
+		//HTTPClient* client = new HTTPClient(clientname, req->getData(), strlen(req->getData()), port++, ip, serverPort, requestTopicResponse);
 	}
 };
