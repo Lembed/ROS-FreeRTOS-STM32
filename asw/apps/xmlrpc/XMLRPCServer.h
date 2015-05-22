@@ -407,7 +407,7 @@ public:
 
 };
 
-#define QUEUE_LEN 10
+#define QUEUE_LEN 5
 #define QUEUE_MSG_SIZE sizeof(UDPMessage)
 #define RXTIMEOUT 100
 
@@ -571,6 +571,7 @@ class TopicReader
 	char topic[MAX_TOPIC_LEN];
 	char callerID[MAX_TOPIC_LEN];
 	uint32_t connectionID;
+	xQueueHandle qHandle;
 
 	static void onResponse(const void* obj,const char* data)
 	{
@@ -633,15 +634,55 @@ class TopicReader
 			os_printf("pos is NULL\n");
 
 	}
+	static const int RX_QUEUE_MSG_SIZE = 128;
+	static const int MAX_CALLBACKS = 5;
+
+	void(*callbacks[MAX_CALLBACKS])(void* data, void* obj);
+	void* objects[MAX_CALLBACKS];
+
 
 public:
 	TopicReader(const char* callerID, const char* topic, const char* msgType)
 	{
 		strcpy(this->topic, topic);
 		strcpy(this->callerID, callerID);
+		qHandle = xQueueCreate(3, RX_QUEUE_MSG_SIZE);
+		connectionID = 0;
 		XMLRequest* req = new RegisterRequest("registerSubscriber", MASTER_URI, callerID, topic, msgType);
 		HTTPClient::instance()->sendData(req->getData(), 11311, connectPublishers, this);
+		// TODO: make a unique task name
+		xTaskCreate(task, (const signed char*)topic, 150, (void*)this, tskIDLE_PRIORITY + 2, NULL);
 	}
+
+	void addCallback(void(*callback)(void* data, void* obj), void* obj)
+	{
+		static int lastIndex = 0;
+		if (lastIndex<MAX_CALLBACKS)
+		{
+			callbacks[lastIndex] = callback;
+			objects[lastIndex] = obj;
+			lastIndex++;
+		}
+	}
+
+	static void task(void* arg)
+	{
+		TopicReader* self = (TopicReader*) arg;
+		unsigned char data[RX_QUEUE_MSG_SIZE];
+		for (;;)
+		{
+			// Try to receive message, put the task to sleep for at most RXTIMEOUT ticks if queue is empty.
+			if (xQueueReceive(self->qHandle, data, RXTIMEOUT))
+			{
+				for (int i=0; i< MAX_CALLBACKS; i++)
+				{
+					if (self->callbacks[i] != NULL)
+						self->callbacks[i]((void*)&data[4], self->objects[i]);
+				}
+			}
+		}
+	}
+
 	void deserializeMsg(const unsigned char* inbuffer, ros::Msg& msg)
 	{
 		// TODO: Check if this method works as expected!
@@ -660,6 +701,38 @@ public:
 	uint32_t getConnectionID()
 	{
 		return connectionID;
+	}
+
+	void enqueueMessage(const char* msg)
+	{
+		// Initialize memory (in stack) for message.
+		unsigned char data[RX_QUEUE_MSG_SIZE];
+		// Copy message into the previously initialized memory.
+		memcpy(data, msg, RX_QUEUE_MSG_SIZE);
+		// Try to send message if queue is non-full.
+		// TODO: Check if we are still "connected" to the end point. (i.e. the node at the remote end is still running)
+		if (xQueueSend(qHandle, &data, 0))
+		{
+
+		}
+		/*	os_printf("Enqueueing data!\n");
+		else
+			os_printf("Queue is full!\n");*/
+	}
+	void dequeueMessage(char* msg)
+	{
+		// Initialize memory (in stack) for message.
+		unsigned char data[RX_QUEUE_MSG_SIZE];
+
+		// Try to receive message, put the task to sleep for at most RXTIMEOUT ticks if queue is empty.
+		for(;;)
+		{
+			if (xQueueReceive(qHandle, data, RXTIMEOUT))
+			{
+				memcpy(msg, data, RX_QUEUE_MSG_SIZE);
+				break;
+			}
+		}
 	}
 
 };
@@ -941,13 +1014,17 @@ public:
 								TopicReader* tr = getTopicReader(connectionID);
 								if (tr != NULL)
 								{
+									// TODO
+									// tr->notify(); // Notifies all subscribers by sending indices of each callback, which was stored in an array.
+
+									tr->enqueueMessage(&message[8]);
 									os_printf("ConnectionID: %d, topic:%s\n", connectionID, tr->getTopic());
-									uint32_t length = *((uint32_t*)&message[12]);
+									/*uint32_t length = *((uint32_t*)&message[12]);
 									if (len> length+15)
 									{
 										message[16+length] = 0;
 										os_printf("%s\n", &message[16]);
-									}
+									}*/
 								}
 							}
 							// Deallocate previously created memory.
