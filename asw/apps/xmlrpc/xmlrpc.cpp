@@ -1,8 +1,6 @@
 #include <string.h>
 #include "xmlrpc.h"
 
-extern "C" void os_printf(char* fmt, ...);
-
 #include <TopicWriter.h>
 #include <XMLRPCServer.h>
 #include <TopicReader.h>
@@ -14,28 +12,9 @@ extern "C" void os_printf(char* fmt, ...);
 #include "rcl.h"
 using namespace std_msgs;
 using namespace sensor_msgs;
+#include <Subscriber.h>
 
-class MySubscriber
-{
-	void(*callback)(String& data);
-public:
-	static void subCallback(void* data, void* obj)
-	{
-		MySubscriber* self = (MySubscriber*) obj;
-		String msg;
-		msg.deserialize((unsigned char*)data);
-		self->callback(msg);
-	}
-
-	MySubscriber(const char* topic, void(*callback)(String& data))
-	{
-		TopicReader* tr = XMLRPCServer::registerSubscriber("listener", topic, "std_msgs/String");
-		this->callback = callback;
-		tr->addCallback(subCallback, this);
-	}
-};
-
-void mycallback(String& msg)
+void chatterCallback(const String& msg)
 {
 	os_printf("Received: %s\n", msg.data);
 }
@@ -44,9 +23,8 @@ void xmlrpc_task(void* p)
 {
 	XMLRPCServer::start();
 	//TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker2", "chatter2", "std_msgs/String");
-	//TopicReader* tr = XMLRPCServer::registerSubscriber("listener", "chatter", "std_msgs/String");
-
-	MySubscriber("chatter", mycallback);
+	ros::Node* n = new ros::Node("nodeB"); // Register node with the name 'nodeB' in RCL.
+	ros::Subscriber<String>* sub = new ros::Subscriber<String>(n, "chatter", chatterCallback);
 
 	/*char string[] = "Hello ROS!";
 	String str;

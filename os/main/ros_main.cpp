@@ -18,51 +18,6 @@ extern "C"
 
 #include "application_tasks.h"
 
-extern "C"
-void RXTask(void* params)
-{
-	for (;;)
-	{
-		unsigned char msg[QUEUE_MSG_SIZE]; // Change this definition name later, there must be no UDP in it.
-
-		tr_take_msg(msg, NULL); // block until msg sequence arrives.
-
-
-
-		int topicLen = (int)msg[0];
-	    char topic[topicLen+1];
-	    memcpy(topic, &msg[1], topicLen);
-	    topic[topicLen] = '\0';
-
-		//void *new_msg;
-		//tr_extract_msg(topic, msg, new_msg);
-	    /*os_printf("topic\n");
-	    //os_printf("topic:%s\n", ((ros::Subscriber_*) ros::Subscriber_::list[0])->topic);
-	    vTaskDelay(4);
-	    continue;*/
-
-		// TODO: Why does RXTask crash/block the OS if remote PC is already publishing at the time STM32 is started?
-	    for (unsigned int i=0; i<MAX_SUBSCRIBERS; i++)
-		{
-			ros::Subscriber_* sub = (ros::Subscriber_*) ros::Subscriber_::list[i];
-			//if (sub != NULL)
-			if (sub != NULL && !strcmp(topic, sub->topic))
-			{
-				if (xSemaphoreTake(sub->dataAccess, 0)) // proceed only if the previous subscriber callback function has finished working on the message.
-				{
-					//os_printf("Topic: %s\n", sub->topic);
-					sub->deserialize(&msg[1+topicLen]);
-
-					// in order not to block the RX task, tell the subscriber task (by signaling) to call its callback instead of calling the callback directly.
-					xSemaphoreGive(sub->signal);
-				}
-				//os_printf("Topic: %s\n", sub->topic);
-			}
-		}
-	}
-}
-
-
 
 extern "C"
 void InitNodesTask(void* params)

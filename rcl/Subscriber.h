@@ -36,12 +36,10 @@
 #define ROS_SUBSCRIBER_H_
 
 #include "Node.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "semphr.h"
 #include <string.h>
 #include <stdio.h>
+#include <TopicReader.h>
+#include <XMLRPCServer.h>
 
 // TODO: Why does STM32 crash if max_subscribers>=20? Not enough memory?
 #define MAX_SUBSCRIBERS 10
@@ -51,7 +49,8 @@ namespace ros {
   class Subscriber_
   {
     public:
-      virtual void callback()=0;
+      //virtual void callback()=0;
+
       virtual void deserialize(unsigned char *data)=0;
       // id_ is set by NodeHandle when we advertise 
       int id_;
@@ -59,7 +58,6 @@ namespace ros {
       virtual const char * getMsgType()=0;
       virtual const char * getMsgMD5()=0;
       const char * topic;
-      xSemaphoreHandle signal, dataAccess;
       static Subscriber_** list;
       static int lastSubscriberIndex;
   };
@@ -78,48 +76,27 @@ namespace ros {
     	  char taskName[32];
     	  topic = topic_name;
     	  list[++lastSubscriberIndex] = this;
-		vSemaphoreCreateBinary(signal);
-		vSemaphoreCreateBinary(dataAccess);
-		xSemaphoreTake(signal, 0); // do this operation to initialize the semaphore with 0 resources
-		sprintf(taskName, "subscriber_%s_%s", node->name, topic);
-		os_printf("name:%s\n", taskName);
-		xTaskCreate(subscriberCallbackTask, (const signed char*)taskName, 128, (void*) this, tskIDLE_PRIORITY + 2, NULL);
 
+  		TopicReader* tr = XMLRPCServer::registerSubscriber("listener", topic, msg.getType());
+  		this->callback = cb;
+  		tr->addCallback(subCallback, this);
       };
+
+  	static void subCallback(void* data, void* obj)
+  	{
+  		Subscriber* self = (Subscriber*) obj;
+  		MsgT msg;
+  		msg.deserialize((unsigned char*)data);
+  		self->callback(msg);
+  	}
 
       virtual void deserialize(unsigned char* data)
       {
     	  msg.deserialize(data);
       }
-
-      virtual void callback(){
-        this->cb_(msg);
-      }
-
+      void(*callback)(const MsgT& msg);
       virtual const char * getMsgType(){ return this->msg.getType(); }
       virtual const char * getMsgMD5(){ return this->msg.getMD5(); }
-
-      static void subscriberCallbackTask(void* params)
-      {
-    	Subscriber_* subscriber = (Subscriber_*) params;
-
-      	if (subscriber != NULL)
-      	{
-      		while(1)
-      		{
-      			if (xSemaphoreTake(subscriber->signal, portMAX_DELAY))
-      			{
-      				subscriber->callback();
-      				xSemaphoreGive(subscriber->dataAccess); // the RX task is allowed to proceed accessing shared data now.
-      			}
-      		}
-      	}
-      	else
-      	{
-      		os_printf("Subscriber is null! Deleting callback task.");
-      		vTaskDelete(NULL); // kill yourself
-      	}
-      }
 
     private:
       CallbackT cb_;
