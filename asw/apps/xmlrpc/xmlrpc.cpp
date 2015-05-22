@@ -83,26 +83,9 @@ base64 connection headers
 */
 void xmlrpc_task(void* p)
 {
-	/*ConnectionHandler* connection = createPublisher("rostopic_4767_1316912741557", "chatter", "std_msgs/String");
-	ConnectionHandler* connection2 = createPublisher("rostopic_476", "chatter2", "std_msgs/String");*/
-
-	//ConnectionHandler* connection3 = createSubscriber("rostopic", "chatter", "std_msgs/String");
-
 	XMLRPCServer::start();
-
-	//XMLRPCHandler::registerPublisher("talker", "chatter", "std_msgs/String");
-	//vTaskDelay(4000);
-
-	TopicWriter* tw = XMLRPCServer::registerPublisher("talker3", "chatter", "std_msgs/String");
-
-	//XMLRPCServer::registerPublisher("talker1", "chatter", "std_msgs/String");
-	//XMLRPCServer::registerPublisher("talker2", "chatter", "std_msgs/String");
-	TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker2", "chatter2", "std_msgs/String");
-	XMLRPCServer::registerSubscriber("listener", "chatter", "std_msgs/String");
-
-
-
-	//XMLRPCHandler::waitForRequest();
+	//TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker2", "chatter2", "std_msgs/String");
+	TopicReader* tr = XMLRPCServer::registerSubscriber("listener", "chatter", "std_msgs/String");
 
 	/*char string[] = "Hello ROS!";
 	String str;
