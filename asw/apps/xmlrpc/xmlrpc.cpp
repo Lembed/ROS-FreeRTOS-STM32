@@ -3,7 +3,9 @@
 
 extern "C" void os_printf(char* fmt, ...);
 
-#include <xmlrpc/XMLRPCServer.h>
+#include <TopicWriter.h>
+#include <XMLRPCServer.h>
+#include <TopicReader.h>
 #include "msg.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Int32.h"
