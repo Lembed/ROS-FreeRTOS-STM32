@@ -38,6 +38,8 @@
 #include "msg.h"
 #include <stdlib.h>
 #include <string.h>
+#include "TopicWriter.h"
+#include "XMLRPCServer.h"
 #define QUEUE_MSG_SIZE 128
 extern "C" void tr_publish(void*,void*);
 namespace ros {
@@ -55,24 +57,14 @@ public:
 		//this->topic = topic;
 		++publisherCount;
 	    strcpy(this->topic, topic);
-
-
-		// Used for letting ros_server know which topic we are publishing to.
-		char registerTopic[] = "advertise";
-		unsigned int offset = 0;
-		unsigned char data[QUEUE_MSG_SIZE];
-		data[0] = (char)strlen(registerTopic);
-		memcpy(&data[1], registerTopic, strlen(registerTopic));
-		offset = 1 + strlen(registerTopic);
-		data[offset++] = (uint8_t) 0; //TODO: Find a better way to signal the data type.
-		memcpy(&data[offset], topic, strlen(topic));
-		data[offset+strlen(topic)] = '\0';
-		tr_publish(data, NULL);
+	    T msg;
+	    tw = XMLRPCServer::registerPublisher(node->name, topic, msg.getType());
 	}
     void publish(const Msg&);
 private:
     char topic[32];
     Node* node;
+    TopicWriter* tw;
     static unsigned int publisherCount;
 };
 

@@ -1,9 +1,7 @@
 #include <string.h>
 #include "xmlrpc.h"
 
-#include <TopicWriter.h>
 #include <XMLRPCServer.h>
-#include <TopicReader.h>
 #include "msg.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Int32.h"
@@ -13,6 +11,7 @@
 using namespace std_msgs;
 using namespace sensor_msgs;
 #include <Subscriber.h>
+#include <Publisher.h>
 
 void chatterCallback(const String& msg)
 {
@@ -21,10 +20,12 @@ void chatterCallback(const String& msg)
 
 void xmlrpc_task(void* p)
 {
+	ros::Node* n = new ros::Node("nodeB"); // Register node with the name 'nodeB' in RCL.
+
 	XMLRPCServer::start();
-	//vTaskDelay(3000);
-	TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker2", "chatter", "std_msgs/String");
-	//ros::Node* n = new ros::Node("nodeB"); // Register node with the name 'nodeB' in RCL.
+	ros::Publisher* pub = new ros::Publisher;
+	pub->advertise<String>(n, "chatter");
+
 	//ros::Subscriber<String>* sub = new ros::Subscriber<String>(n, "chatter", chatterCallback);
 
 	/*char string[] = "Hello ROS!";
@@ -57,7 +58,8 @@ void xmlrpc_task(void* p)
 
 	LOOP(200,
 			//tw->publishMsg(str1);
-			tw2->publishMsg(str);
+			//tw2->publishMsg(str);
+			pub->publish(str1);
 			vTaskDelay(200);
 	)
 

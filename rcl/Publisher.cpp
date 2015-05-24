@@ -46,14 +46,7 @@ Publisher::Publisher()
 
 void Publisher::publish(const Msg& msg)
 {
-	unsigned int offset = 0;
-	unsigned char data[QUEUE_MSG_SIZE];
-	data[0] = (char)strlen(topic);
-	memcpy(&data[1], topic, strlen(topic));
-	offset = 1 + strlen(topic);
-
-	msg.serialize(&data[offset]);
-	tr_publish(data, (void*)topic);
+	tw->publishMsg(msg);
 }
 
 }
