@@ -1,9 +1,10 @@
 #include "ultrasonic_sensor.h"
+
 #include "rcl.h"
 #include "Node.h"
 #include "Publisher.h"
 #include "Subscriber.h"
-#include "std_msgs/Float32.h"
+#include "sensor_msgs/Range.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -113,26 +114,29 @@ float SR04_Read()
 	/* Return distance */
 	return distance;
 }
-using namespace std_msgs;
+
+using namespace sensor_msgs;
 
 void ultrasonic_sensor(void* params)
 {
 	ros::Node* n = new ros::Node("nodeD");
 	ros::Publisher* pub = new ros::Publisher;
-	pub->advertise<Float32>(n, "squared");
+	pub->advertise<Range>(n, "ultrasound");
 
-	Float32 msg;
+	Range msg;
+	msg.radiation_type = Range::ULTRASOUND;
+	msg.min_range = 0.03f;
+	msg.max_range = 2.0f;
 
 	SR04_Init();
 	LOOP(200,
 
-	float distance_cm = SR04_Read();
+	float distance_m = SR04_Read() / 100.0f;
 
-	if (distance_cm > -1)
+	if (distance_m > -1)
 	{
 		//os_printf("Distance: %d cm\n", (long)distance_cm);
-
-		msg.data = distance_cm;
+		msg.range = distance_m;
 		pub->publish(msg);
 	}
 	// start while

@@ -12,19 +12,9 @@
 void tr_log(const char* msg);
 
 /**
- * Tries to take a message and blocks if no message is ready.
- */
-void tr_take_msg(void* msg, void* topic);
-
-/**
  * Initializes transport data structures and parameters.
  */
 void tr_init();
 
-/**
- * Puts messages that need to be published into a queue.
- * UDP TX task then takes each of these messages and sends to the receiving end point.
- */
-void tr_publish(void* msg, void* topic);
 
 #endif /* ASW_OS_TRANSPORT_H_ */

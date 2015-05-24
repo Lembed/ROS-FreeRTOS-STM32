@@ -16,7 +16,8 @@ extern "C"
 #include "Subscriber.h"
 #include "Publisher.h"
 
-#include "application_tasks.h"
+#include <XMLRPCServer.h>
+#include <application_tasks.h>
 
 
 extern "C"
@@ -78,14 +79,8 @@ void ros_main(void* p)
 {
 	tr_init();
 	vTaskDelay(5000);
-	xTaskCreate(xmlrpc_task, (const signed char*)"RXTask2", 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
-	/*vTaskDelay(2000);
-	tr_init();
-	xTaskCreate(RXTask, (const signed char*)"RXTask", 1024, NULL, tskIDLE_PRIORITY + 3, NULL);
+	XMLRPCServer::start();
+    xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 
-    vTaskDelay(5000); // TODO: Replace this sleep with semaphore signals to make sure network etc. has been setup successfully.
-
-    //xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
-*/
     vTaskDelete(NULL);
 }
