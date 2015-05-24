@@ -9,7 +9,19 @@ This software introduces ROS on a bare-metal operating system, which is FreeRTOS
 - Inter-node communication.
 
 ### Description
-Software for distributing nodes in a multi-node ROS system on STM32 microcontroller. It consists of a multi-task operating system (FreeRTOS), ROS middleware, ROS client library, and application tasks. Currently, only subscribing and publishing are supported. There is an XMLRPC server for communicating with the ROS master node. UDPReceive and UDPSend tasks are used to receive/send packets over UDP where this software only supports the UDPROS protocol.
+Software for distributing nodes in a multi-node ROS system on STM32 microcontroller. It consists of a multi-tasking operating system (FreeRTOS), ROS middleware, ROS client library, and application tasks. Currently, only subscribing and publishing are supported. There is an XMLRPC server for communicating with the ROS master node. UDPReceive and UDPSend tasks are used to receive/send packets over UDP where this software only supports the UDPROS protocol.
+
+
+|           Layers          |
+| ---------------------------------| 
+|           application           |
+|        ROS Client Library       |
+|         ROS Middleware          |
+|            XMLRPC+UDP           |
+|             FreeRTOS            |
+|        Hardware (STM32F4)       |
+
+
 
 Similar to the ROS 2.0 middleware implementation, there are TopicReaders and TopicWriters as if DDS was being used. This abstraction will make it easier to replace the XMLRPC+UDP mechanism by DDS in the future.
 
@@ -21,7 +33,7 @@ In the below image, it is shown how TopicReaders/Writers, UDPReceive/Send tasks,
 - Node functions specified in application_tasks.h (a task table).
 - Data transfer is implemented using UDP.
 - Very simple XMLRPC handling (no XML parser is used).
-- Messages are serialized using headers generated with rosserial's message generator based on Python.
+- Messages are serialized using C++ headers generated with rosserial's message generator based on Python.
 
 ### TODO:
 - Test the real-time behavior.
