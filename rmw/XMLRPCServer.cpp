@@ -24,7 +24,6 @@ extern "C"
 #define TOPIC_COUNT 20
 #define MAX_TOPIC_LEN 48
 
-#define XMLRPC_PORT 40000
 
 #include "netconf.h"
 
@@ -181,7 +180,7 @@ private:
 		      netconn_listen(conn);
 
 		      while (1) {
-		    	  os_printf("netconn Accepting...");
+		    	  os_printf("netconn Accepting...\n");
 		        // Grab new connection.
 		        newconn = netconn_accept(conn);
 
@@ -190,7 +189,7 @@ private:
 		          struct netbuf *buf;
 		          char *data;
 		          u16_t len;
-		          os_printf("netconn Accepted...");
+		          os_printf("netconn Accepted...\n");
 		          uint32_t offset = 0;
 		          while ((buf = netconn_recv(newconn)) != NULL) {
 		            do {
@@ -278,10 +277,6 @@ private:
 	{
 
 	}
-
-
-
-
 };
 
 
@@ -496,7 +491,7 @@ void XMLRPCServer::start()
 	xTaskCreate(UDPSend, (const signed char*)"UDPSend", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
 	isUDPReceiveTaskCreated = false;
 
-	xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 256, NULL, tskIDLE_PRIORITY + 3, NULL);
+	//xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 256, NULL, tskIDLE_PRIORITY + 3, NULL);
 
 }
 
@@ -563,9 +558,6 @@ void XMLRPCServer::UDPreceive(void* params)
 							TopicReader* tr = getTopicReader(connectionID);
 							if (tr != NULL)
 							{
-								// TODO
-								// tr->notify(); // Notifies all subscribers by sending indices of each callback, which was stored in an array.
-
 								tr->enqueueMessage(&message[8]);
 								os_printf("ConnectionID: %d, topic:%s\n", connectionID, tr->getTopic());
 								/*uint32_t length = *((uint32_t*)&message[12]);

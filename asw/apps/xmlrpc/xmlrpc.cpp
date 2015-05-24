@@ -22,9 +22,10 @@ void chatterCallback(const String& msg)
 void xmlrpc_task(void* p)
 {
 	XMLRPCServer::start();
-	//TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker2", "chatter2", "std_msgs/String");
-	ros::Node* n = new ros::Node("nodeB"); // Register node with the name 'nodeB' in RCL.
-	ros::Subscriber<String>* sub = new ros::Subscriber<String>(n, "chatter", chatterCallback);
+	//vTaskDelay(3000);
+	TopicWriter* tw2 = XMLRPCServer::registerPublisher("talker2", "chatter", "std_msgs/String");
+	//ros::Node* n = new ros::Node("nodeB"); // Register node with the name 'nodeB' in RCL.
+	//ros::Subscriber<String>* sub = new ros::Subscriber<String>(n, "chatter", chatterCallback);
 
 	/*char string[] = "Hello ROS!";
 	String str;
@@ -55,9 +56,8 @@ void xmlrpc_task(void* p)
 	//TODO: Connection won't be initialized if PC side subscriber is created before STM32 side publisher.
 
 	LOOP(200,
-			//publishMsg(str1, &endpoint1);
 			//tw->publishMsg(str1);
-			//tw2->publishMsg(str);
+			tw2->publishMsg(str);
 			vTaskDelay(200);
 	)
 
