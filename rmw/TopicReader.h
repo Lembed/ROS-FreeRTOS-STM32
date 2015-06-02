@@ -10,6 +10,8 @@ class TopicReader
 {
 	char topic[MAX_TOPIC_LEN];
 	char callerID[MAX_TOPIC_LEN];
+	char md5sum[MAX_TOPIC_LEN];
+	char msgType[MAX_TOPIC_LEN];
 	uint32_t connectionID;
 	xQueueHandle qHandle;
 
@@ -25,7 +27,7 @@ class TopicReader
 
 
 public:
-	TopicReader(const char* callerID, const char* topic, const char* msgType);
+	TopicReader(const char* callerID, const char* topic, const char* md5sum, const char* msgType);
 	void addCallback(void(*callback)(void* data, void* obj), void* obj);
 	static void task(void* arg);
 	const char* getTopic();

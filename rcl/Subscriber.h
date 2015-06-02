@@ -77,7 +77,7 @@ namespace ros {
     	  topic = topic_name;
     	  list[++lastSubscriberIndex] = this;
 
-  		TopicReader* tr = XMLRPCServer::registerSubscriber(node->name, topic, msg.getType());
+  		TopicReader* tr = XMLRPCServer::registerSubscriber(node->name, topic, msg.getMD5(), msg.getType());
   		this->callback = cb;
   		tr->addCallback(subCallback, this);
       };

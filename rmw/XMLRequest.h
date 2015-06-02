@@ -7,9 +7,47 @@
 #include <stdint.h>
 #define XMLRPC_PORT 40000
 
+static const char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+	                                'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+	                                'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+	                                'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+	                                'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+	                                'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+	                                'w', 'x', 'y', 'z', '0', '1', '2', '3',
+	                                '4', '5', '6', '7', '8', '9', '+', '/'};
+static const int mod_table[] = {0, 2, 1};
+
 class XMLRequest
 {
 protected:
+	static char *base64_encode(const unsigned char *data, char* encoded_data, size_t input_length, size_t *output_length)
+	{
+
+		*output_length = 4 * ((input_length + 2) / 3);
+
+		if (encoded_data == NULL) return NULL;
+
+		for (int i = 0, j = 0; i < input_length;)
+		{
+
+			uint32_t octet_a = i < input_length ? (unsigned char)data[i++] : 0;
+			uint32_t octet_b = i < input_length ? (unsigned char)data[i++] : 0;
+			uint32_t octet_c = i < input_length ? (unsigned char)data[i++] : 0;
+
+			uint32_t triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
+
+			encoded_data[j++] = encoding_table[(triple >> 3 * 6) & 0x3F];
+			encoded_data[j++] = encoding_table[(triple >> 2 * 6) & 0x3F];
+			encoded_data[j++] = encoding_table[(triple >> 1 * 6) & 0x3F];
+			encoded_data[j++] = encoding_table[(triple >> 0 * 6) & 0x3F];
+		}
+
+		for (int i = 0; i < mod_table[input_length % 3]; i++)
+			encoded_data[*output_length - 1 - i] = '=';
+
+		return encoded_data;
+	}
+
 	static void createRequestHeader(const char* hostURI, int contentLength, char* data)
 	{
 		if (data != NULL)
@@ -76,8 +114,10 @@ public:
 
 class TopicRequest : public XMLRequest
 {
+	char base64[256];
+	char connectionHeader[256];
 public:
-	TopicRequest(const char* methodName, const char* uri, const char* callerID, const char* topic)
+	TopicRequest(const char* methodName, const char* uri, const char* callerID, const char* topic, const char* md5sum, const char* msgType)
 	{
 		strcpy(xml, "<?xml version=\"1.0\"?> <methodCall> <methodName>");
 		strcat(xml, methodName);
@@ -86,8 +126,48 @@ public:
 		strcat(xml, callerID);
 		strcat(xml, "</value></param><param><value>/");
 		strcat(xml, topic);
-		strcat(xml, "</value></param><param><value><array><data><value><array><data><value>UDPROS</value><value><base64>EgAAAGNhbGxlcmlkPS9saXN0ZW5lcicAAABtZDVzdW09OTkyY2U4YTE2ODdjZWM4YzhiZDg4");
-		strcat(xml, "M2VjNzNjYTQxZDEOAAAAdG9waWM9L2NoYXR0ZXIUAAAAdHlwZT1zdGRfbXNncy9TdHJpbmc=</base64></value><value>10.3.84.99</value><value><i4>44100</i4></value><value><i4>1500</i4></value></data></array></value></data></array></value></param></params></methodCall>");
+		strcat(xml, "</value></param><param><value><array><data><value><array><data><value>UDPROS</value><value><base64>");
+		uint32_t offset = 0;
+		uint32_t len = 0;
+		char str[50];
+
+		sprintf(str, "callerid=/%s", callerID);
+		len = (uint32_t)strlen(str);
+		memcpy(connectionHeader+offset, &len, 4);
+		offset += 4;
+		memcpy(connectionHeader+offset, str, len);
+		offset+= len;
+
+
+		sprintf(str, "md5sum=%s", md5sum);
+		len = (uint32_t)strlen(str);
+		memcpy(connectionHeader+offset, &len, 4);
+		offset += 4;
+		memcpy(connectionHeader+offset, str, len);
+		//memcpy(connectionHeader+offset, "md5sum=992ce8a1687cec8c8bd883ec73ca41d1", len);
+		offset+= len;
+
+		sprintf(str, "topic=/%s", topic);
+		len = (uint32_t)strlen(str);
+		memcpy(connectionHeader+offset, &len, 4);
+		offset += 4;
+		memcpy(connectionHeader+offset, str, len);
+		offset+= len;
+
+		sprintf(str, "type=%s", msgType);
+		len = (uint32_t)strlen(str);
+		memcpy(connectionHeader+offset, &len, 4);
+		offset += 4;
+		memcpy(connectionHeader+offset, str, len);
+		offset+= len;
+
+		//strcat(xml, "EgAAAGNhbGxlcmlkPS9saXN0ZW5lcicAAABtZDVzdW09OTkyY2U4YTE2ODdjZWM4YzhiZDg4M2VjNzNjYTQxZDEOAAAAdG9waWM9L2NoYXR0ZXIUAAAAdHlwZT1zdGRfbXNncy9TdHJpbmc=");
+		unsigned int l;
+		base64_encode((unsigned char*)connectionHeader, base64, offset, &l);
+
+		strcat(xml, base64);
+
+		strcat(xml, "</base64></value><value>10.3.84.99</value><value><i4>44100</i4></value><value><i4>300</i4></value></data></array></value></data></array></value></param></params></methodCall>");
 
 		createRequestHeader(uri, strlen(xml), header);
 

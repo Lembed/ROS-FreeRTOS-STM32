@@ -6,6 +6,8 @@
 #include "tcpip.h"
 #include "api.h"
 
+
+
 extern "C"
 {
 #include "ros.h"
@@ -23,6 +25,12 @@ extern "C"
 
 
 #include "netconf.h"
+
+
+
+
+
+
 
 
 bool XMLRPCServer::isUDPReceiveTaskCreated = false;
@@ -584,10 +592,10 @@ TopicWriter* XMLRPCServer::registerPublisher(const char* callerID, const char* t
 	return tw;
 }
 
-TopicReader* XMLRPCServer::registerSubscriber(const char* callerID, const char* topic, const char* msgType)
+TopicReader* XMLRPCServer::registerSubscriber(const char* callerID, const char* topic, const char* md5sum, const char* msgType)
 {
 	static uint16_t lastIndex = 0;
-	TopicReader* tr = new TopicReader(callerID, topic, msgType);
+	TopicReader* tr = new TopicReader(callerID, topic, md5sum, msgType);
 	topicReaders[lastIndex++] = tr;
 	return tr;
 }
@@ -652,7 +660,6 @@ void XMLRPCServer::UDPreceive(void* params)
 						// Deallocate previously created memory.
 						netbuf_delete(buf);
 					}
-					else
 					// Use delay until to guarantee periodic execution of each loop iteration.
 					vTaskDelayUntil(&xLastWakeTime, 10);
 				}

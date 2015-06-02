@@ -16,7 +16,7 @@ public:
 	static void XMLRPCServerReceiveCallback(const char* data, char* buffer);
 	static void start();
 	static TopicWriter* registerPublisher(const char* callerID, const char* topic, const char* msgType);
-	static TopicReader* registerSubscriber(const char* callerID, const char* topic, const char* msgType);
+	static TopicReader* registerSubscriber(const char* callerID, const char* topic, const char* md5sum, const char* msgType);
 	static void UDPreceive(void* params);
 
 	static void sendRequest(const char* data, uint16_t port, void(*receiveCallback)(const void* obj, const char* data) = NULL, void* obj = NULL);

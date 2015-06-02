@@ -11,10 +11,12 @@ extern "C"
 
 #define SERVER_IP_ADDRESS "10.3.84.100"
 
-TopicReader::TopicReader(const char* callerID, const char* topic, const char* msgType)
+TopicReader::TopicReader(const char* callerID, const char* topic, const char* md5sum, const char* msgType)
 {
 	strcpy(this->topic, topic);
 	strcpy(this->callerID, callerID);
+	strcpy(this->md5sum, md5sum);
+	strcpy(this->msgType, msgType);
 	qHandle = xQueueCreate(3, RX_QUEUE_MSG_SIZE);
 	connectionID = 0;
 	XMLRequest* req = new RegisterRequest("registerSubscriber", MASTER_URI, callerID, topic, msgType);
@@ -113,7 +115,7 @@ void TopicReader::onResponse(const void* obj,const char* data)
 
 void TopicReader::requestTopic(const char* ip, uint16_t serverPort)
 {
-	XMLRequest* req = new TopicRequest("requestTopic", MASTER_URI, callerID, topic);
+	XMLRequest* req = new TopicRequest("requestTopic", MASTER_URI, callerID, topic, md5sum, msgType);
 	XMLRPCServer::sendRequest(req->getData(), serverPort, onResponse, this);
 }
 
