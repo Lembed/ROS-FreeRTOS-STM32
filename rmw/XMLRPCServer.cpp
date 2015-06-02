@@ -442,6 +442,22 @@ TopicWriter* XMLRPCServer::getTopicWriter(const char* topic)
 	return NULL;
 }
 
+TopicReader* XMLRPCServer::getTopicReader(const char* topic)
+{
+	for(uint16_t i=0; i<MAX_TOPIC_READERS;i++)
+	{
+		if (topicReaders[i] != NULL)
+		{
+			TopicReader* tr = topicReaders[i];
+			if (!strcmp(tr->getTopic(), topic))
+			{
+				return tr;
+			}
+		}
+	}
+	return NULL;
+}
+
 TopicReader* XMLRPCServer::getTopicReader(const uint32_t connectionID)
 {
 	for(uint16_t i=0; i<MAX_TOPIC_READERS;i++)
@@ -538,6 +554,7 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 	}
 	else if (!strcmp(methodName, "publisherUpdate"))
 	{
+		os_printf("Publisher Update!\n");
 		//static char data[] = "<?xml version='1.0'?><methodCall><methodName>publisherUpdate</methodName><params><param><value><string>/master</string></value></param><param><value><string>/chatter</string></value></param><param><value><array><data><value><string>http://10.3.84.99:40000</string></value></data></array></value></param></params></methodCall>";
 
 		char* pos = strstr(data, "<value><string>/master</string></value>");
@@ -545,11 +562,12 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 		{
 			//strncpy(text, pos, 99);
 			//os_printf("Text: %s\n", text);
+			char topic[MAX_TOPIC_LEN];
 			while(1)
 			{
 				char* pos2 = strstr((char*)pos, "<value><string>");
 				char* pos3 = strstr((char*)pos2, "</string></value>");
-				os_printf("_pos:%d, _pos2:%d\n", pos2, pos3);
+				//os_printf("_pos:%d, _pos2:%d\n", pos2, pos3);
 				if (pos2 == NULL || pos3 == NULL)
 					break;
 				if (pos3 > pos2)
@@ -558,11 +576,29 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 					char uri[pos3-pos2-offset+1];
 					strncpy (uri, pos2+offset, pos3-pos2-offset);
 					uri[pos3-pos2-offset] = 0;
-					uint16_t port;
-					char ip[32];
-					extractURI(uri, ip, &port);
-					os_printf("URI: %s:::%d\n", ip, port);
-					//os_printf("URI: %s\n", uri);
+
+					if (!strcmp(uri, "/master"))
+					{
+					}
+					else if(uri[0] == '/')
+					{
+						strcpy(topic, &uri[1]);
+					}
+					else
+					{
+						uint16_t port;
+						char ip[32];
+						extractURI(uri, ip, &port);
+						if (strcmp(ip, SENDER_IP_ADDR))
+						{
+							os_printf("Topic:%s URI: %s:::%s:::%d\n", topic, uri, ip, port);
+							TopicReader* tr = getTopicReader(topic);
+							if (!strcmp(ip, "SI-Z0M81"))
+								strcpy(ip, "10.3.84.100");
+
+							tr->requestTopic(ip, port);
+						}
+					}
 				}
 				pos = pos3;
 			}
@@ -649,19 +685,13 @@ void XMLRPCServer::UDPreceive(void* params)
 							{
 								tr->enqueueMessage(&message[8]);
 								os_printf("ConnectionID: %d, topic:%s\n", connectionID, tr->getTopic());
-								/*uint32_t length = *((uint32_t*)&message[12]);
-								if (len> length+15)
-								{
-									message[16+length] = 0;
-									os_printf("%s\n", &message[16]);
-								}*/
 							}
 						}
 						// Deallocate previously created memory.
 						netbuf_delete(buf);
 					}
 					// Use delay until to guarantee periodic execution of each loop iteration.
-					vTaskDelayUntil(&xLastWakeTime, 10);
+					//vTaskDelayUntil(&xLastWakeTime, 10);
 				}
 			}
 			else
@@ -688,6 +718,8 @@ void XMLRPCServer::extractURI(const char* uri, char* ip, uint16_t* port)
 		if (pos != NULL && ip!= NULL)
 		{
 			memcpy(ip, p+3, pos-p-3);
+			ip[pos-p-3] = 0;
+
 			char portStr[6];
 			strcpy(portStr, pos+1);
 			*port = atoi(portStr);

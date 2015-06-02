@@ -12,6 +12,7 @@ static bool isUDPReceiveTaskCreated;
 public:
 	static void UDPSend(void* params);
 	static TopicWriter* getTopicWriter(const char* topic);
+	static TopicReader* getTopicReader(const char* topic);
 	static TopicReader* getTopicReader(const uint32_t connectionID);
 	static void XMLRPCServerReceiveCallback(const char* data, char* buffer);
 	static void start();

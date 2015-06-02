@@ -17,7 +17,7 @@ class TopicReader
 
 	static void onResponse(const void* obj,const char* data);
 
-	void requestTopic(const char* ip, uint16_t serverPort);
+
 	static void connectPublishers(const void* obj, const char* data);
 	static const int RX_QUEUE_MSG_SIZE = 128;
 	static const int MAX_CALLBACKS = 5;
@@ -31,6 +31,7 @@ public:
 	void addCallback(void(*callback)(void* data, void* obj), void* obj);
 	static void task(void* arg);
 	const char* getTopic();
+	void requestTopic(const char* ip, uint16_t serverPort);
 	uint32_t getConnectionID();
 	void enqueueMessage(const char* msg);
 	void dequeueMessage(char* msg);

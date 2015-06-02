@@ -38,7 +38,6 @@ unsigned long counter = 0;
 
 void myloop()
 {
-	return;
 	counter++;
 	os_printf("Counter:%d\n", counter);
 	char message[16];
