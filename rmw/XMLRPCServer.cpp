@@ -6,9 +6,6 @@
 #include "tcpip.h"
 #include "api.h"
 
-
-
-
 extern "C"
 {
 #include "ros.h"
@@ -160,7 +157,7 @@ HTTPClient* HTTPClient::_instance = NULL;
 class TCPServerBase
 {
 private:
-	static void tcptask(void* arg)
+	/*static void tcptask(void* arg)
 	{
 		TCPServerBase* self = (TCPServerBase*) arg;
 		  struct netconn *conn, *newconn;
@@ -190,6 +187,9 @@ private:
 		          char *data;
 		          u16_t len;
 		          os_printf("netconn Accepted...\n");
+
+		          while(!ERR_IS_FATAL(newconn->err)) { //Fatal errors include connections being closed, reset, aborted, etc
+
 		          uint32_t offset = 0;
 		          while ((buf = netconn_recv(newconn)) != NULL) {
 		            do {
@@ -213,6 +213,9 @@ private:
 		          netconn_close(newconn);
 		          netconn_delete(newconn);
 		        }
+		        }
+		        else
+		        	os_printf("Fatal Error!!!\n");
 		      }
 		    } else {
 		      os_printf(" can not bind TCP netconn\n");
@@ -223,7 +226,85 @@ private:
 
 
 	    vTaskDelete(NULL);
-	}
+	}*/
+
+
+	static void close_conn(struct tcp_pcb *pcb){
+		      tcp_arg(pcb, NULL);
+		      tcp_sent(pcb, NULL);
+		      tcp_recv(pcb, NULL);
+		      tcp_close(pcb);
+		}
+		static err_t data_sent(void *arg, struct tcp_pcb *pcb, u16_t len)
+		{
+			TCPServerBase* self = (TCPServerBase*) arg;
+			self->onSendAcknowledged();
+		}
+		static err_t echo_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
+		{
+			TCPServerBase* self = (TCPServerBase*) arg;
+			int i;
+		    int len;
+		    char *pc;
+		    if (err == ERR_OK && p != NULL)
+		    {
+		    	// Inform TCP that we have taken the data.
+		        tcp_recved(pcb, p->tot_len);
+
+		        //pointer to the pay load
+		        pc=(char *)p->payload;
+
+		        //size of the pay load
+		        len = p->tot_len;
+
+		        self->onReceive(pc);
+		        self->receiveCallback(pc, self->buffer);
+
+		        pbuf_free(p);
+
+		        if (self->buffer != NULL && self->bufferLength > 0)
+		        {
+					err = tcp_write(pcb, self->buffer, self->bufferLength, 0);
+					tcp_sent(pcb, data_sent);
+		        }
+
+		        close_conn(pcb);
+
+		    }
+		    if (err == ERR_OK && p == NULL)
+		    {
+		    	close_conn(pcb);
+		    }
+		    return ERR_OK;
+		}
+
+		static err_t echo_accept(void *arg, struct tcp_pcb *pcb, err_t err)
+		{
+			TCPServerBase* self = (TCPServerBase*) arg;
+			self->onAccept();
+			tcp_setprio(pcb, TCP_PRIO_MIN);
+		    tcp_recv(pcb, echo_recv);
+		    tcp_err(pcb, NULL); //Don't care about error here
+		    tcp_poll(pcb, NULL, 4); //No polling here
+		    return ERR_OK;
+		}
+
+		static void tcptask(void* arg)
+		{
+			struct tcp_pcb *pcb = tcp_new();
+			TCPServerBase* self = (TCPServerBase*) arg;
+		    tcp_arg(pcb, arg);
+		    tcp_bind(pcb, IP_ADDR_ANY, self->port);
+		    while(1)
+		    {
+		    	pcb = tcp_listen(pcb);
+				tcp_accept(pcb, echo_accept);
+				vTaskDelay(10);
+		    }
+		    vTaskDelete(NULL);
+		}
+
+
 protected:
 	void createBuffer(uint16_t size)
 	{
@@ -491,7 +572,7 @@ void XMLRPCServer::start()
 	xTaskCreate(UDPSend, (const signed char*)"UDPSend", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
 	isUDPReceiveTaskCreated = false;
 
-	//xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 256, NULL, tskIDLE_PRIORITY + 3, NULL);
+	xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 256, NULL, tskIDLE_PRIORITY + 3, NULL);
 
 }
 
@@ -571,6 +652,7 @@ void XMLRPCServer::UDPreceive(void* params)
 						// Deallocate previously created memory.
 						netbuf_delete(buf);
 					}
+					else
 					// Use delay until to guarantee periodic execution of each loop iteration.
 					vTaskDelayUntil(&xLastWakeTime, 10);
 				}
