@@ -78,7 +78,7 @@ extern void xmlrpc_task(void* p);
 void ros_main(void* p)
 {
 	tr_init();
-	vTaskDelay(5000);
+	vTaskDelay(1000);
 	XMLRPCServer::start();
     xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 

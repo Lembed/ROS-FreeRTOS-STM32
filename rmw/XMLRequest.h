@@ -206,4 +206,49 @@ public:
 
 };
 
+class PublisherUpdate : public XMLRequest
+{
+public:
+	PublisherUpdate(const char* topic, const char* uri)
+	{
+		/*
+		 * <?xml version='1.0'?>
+<methodCall>
+<methodName>publisherUpdate</methodName>
+<params>
+<param>
+<value><string>/master</string></value>
+</param>
+<param>
+<value><string>/rosout</string></value>
+</param>
+<param>
+<value><array><data>
+<value><string>http://SI-Z0M81:52656/</string></value>
+</data></array></value>
+</param>
+</params>
+</methodCall>
+		 *
+		 */
+		strcpy(xml, "<?xml version='1.0'?><methodCall><methodName>publisherUpdate</methodName><params><param>");
+		strcat(xml, "<value><string>/master</string></value></param><param><value><string>/");
+		strcat(xml, topic);
+		strcat(xml,"</string></value>");
+		strcat(xml, "</param><param><value><array><data>");
+
+		strcat(xml, "<value><string>");
+		strcat(xml, uri);
+		strcat(xml, "</string></value>");
+
+		strcat(xml, "</data></array></value></param></params></methodCall>");
+
+		createResponseHeader(strlen(xml), header);
+
+		strcpy(data, header);
+		strcat(data, xml);
+	}
+
+};
+
 #endif /* RMW_XMLREQUEST_H_ */

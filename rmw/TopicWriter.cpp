@@ -3,6 +3,12 @@
 #include "XMLRPCServer.h"
 UDPHandler* UDPHandler::_instance = NULL;
 uint32_t UDPConnection::ID = 10000;
+
+extern "C"
+{
+#include "ros.h"
+}
+
 TopicWriter::TopicWriter(const char* callerID, const char* topic, const char* msgType)
 {
 	strcpy(this->topic, topic);
@@ -10,7 +16,7 @@ TopicWriter::TopicWriter(const char* callerID, const char* topic, const char* ms
 	qHandle = xQueueCreate(QUEUE_LEN, QUEUE_MSG_SIZE);
 
 	XMLRequest* req = new RegisterRequest("registerPublisher", MASTER_URI, callerID, topic, msgType);
-	XMLRPCServer::sendRequest(req->getData(), 11311);
+	XMLRPCServer::sendRequest(req->getData(), 11311, connectSubscribers);
 }
 void TopicWriter::serializeMsg(const ros::Msg& msg, unsigned char* outbuffer)
 {
@@ -54,4 +60,44 @@ UDPConnection* const* TopicWriter::getConnections()
 const char* TopicWriter::getTopic()
 {
 	return topic;
+}
+
+void TopicWriter::connectSubscribers(const void* obj, const char* data)
+{
+	char text[100];
+	char* pos = strstr((char*)data, "as publisher of");
+	if (pos != 0)
+	{
+		while(1)
+		{
+			char* pos2 = strstr((char*)pos, "<value><string>");
+			char* pos3 = strstr((char*)pos2, "</string></value>");
+			if (pos2 == NULL || pos3 == NULL)
+				break;
+			if (pos3 > pos2)
+			{
+				int offset = strlen("<value><string>");
+				char uri[pos3-pos2-offset+1];
+				strncpy (uri, pos2+offset, pos3-pos2-offset);
+				uri[pos3-pos2-offset] = 0;
+				uint16_t port;
+				char ip[32];
+				XMLRPCServer::extractURI(uri, ip, &port);
+				os_printf("URI: %s:::%d\n", ip, port);
+				//os_printf("URI: %s\n", uri);
+				// Check if this uri already exists in a "PublisherURIs" list.
+				if (strcmp(ip, "10.3.84.99"))  // TODO: replace this with a method to check if ip is not equal self ip
+				{
+					TopicWriter* self = (TopicWriter*) obj;
+					// TODO: Send publisher update to each remote subscriber
+					XMLRequest* req = new PublisherUpdate(self->topic, uri);
+					XMLRPCServer::sendRequest(req->getData(), port);
+				}
+			}
+			pos = pos3;
+		}
+	}
+	else
+		os_printf("pos is NULL\n");
+
 }

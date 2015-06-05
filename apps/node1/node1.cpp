@@ -23,7 +23,7 @@ void sqrtCallback(const Int32& msg)
 	Float32 m;
 	m.data = (float)sqrt((double) msg.data);
 	// Publish msg to "sqrt" topic.
-	//sqrt_pub->publish(m);
+	sqrt_pub->publish(m);
 }
 
 ros::Publisher* pub;
@@ -38,13 +38,13 @@ unsigned long counter = 0;
 
 void myloop()
 {
-	counter++;
+	/*counter++;
 	os_printf("Counter:%d\n", counter);
 	char message[16];
 	sprintf(message, "%d", counter);
 	String msg;
 	msg.data = message;
-	pub->publish(msg);
+	pub->publish(msg);*/
 }
 
 
@@ -75,14 +75,14 @@ str1.data = string;*/
 void node1(void* params)
 {
 	Node* n = new ros::Node("nodeB"); // Register node with the name 'nodeB' in RCL.
-	pub = new ros::Publisher;
-	pub->advertise<String>(n, "chatter5");
+	//pub = new ros::Publisher;
+	//pub->advertise<String>(n, "chatter5");
 
-	//sqrt_pub = new ros::Publisher;
-	//sqrt_pub->advertise<Float32>(n, "sqrt");
+	sqrt_pub = new ros::Publisher;
+	sqrt_pub->advertise<Float32>(n, "sqrt");
 	//sqrt_pub->advertise<Float32>(n, "sqrt"); // Advertise to "sqrt" topic.
-	//ros::Subscriber<Int32>* sub = new ros::Subscriber<Int32>(n, "counter", sqrtCallback); // Subscribe to "sub" topic.
-	ros::Subscriber<String>* sub = new ros::Subscriber<String>(n, "chatter", testCallback); // Subscribe to "sub" topic.
+	ros::Subscriber<Int32>* sub = new ros::Subscriber<Int32>(n, "counter", sqrtCallback); // Subscribe to "sub" topic.
+	//ros::Subscriber<String>* sub = new ros::Subscriber<String>(n, "chatter", testCallback); // Subscribe to "sub" topic.
 	spinLoop(myloop, 250); // Spin node for being able to receive subscriber callbacks and run loop with period of 250ms.
 
 }

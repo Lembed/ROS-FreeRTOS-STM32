@@ -391,6 +391,13 @@ void XMLRPCServer::UDPSend(void* params)
 		TopicWriter* tw = getTopicWriter(msg.topic);
 		if (tw != NULL)
 		{
+			// inter-node communication
+			TopicReader* tr = getTopicReader(msg.topic);
+			if (tr != NULL)
+			{
+				tr->enqueueMessage(msg.data);
+			}
+
 			EndPoint endpoint;
 			endpoint.ip.addr = inet_addr("10.3.84.100");
 			UDPConnection* const* connections = tw->getConnections();
@@ -593,10 +600,13 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 						{
 							os_printf("Topic:%s URI: %s:::%s:::%d\n", topic, uri, ip, port);
 							TopicReader* tr = getTopicReader(topic);
-							if (!strcmp(ip, "SI-Z0M81"))
-								strcpy(ip, "10.3.84.100");
+							if (tr != NULL)
+							{
+								if (!strcmp(ip, "SI-Z0M81"))
+									strcpy(ip, "10.3.84.100");
 
-							tr->requestTopic(ip, port);
+								tr->requestTopic(ip, port);
+							}
 						}
 					}
 				}
@@ -644,8 +654,6 @@ void XMLRPCServer::UDPreceive(void* params)
 
 	// Initialize memory (in stack) for message.
 	char message[60];
-	// TODO: Replace this delay with a signal!
-	vTaskDelay(6000);
 	os_printf("Test!\n");
 	conn = netconn_new(NETCONN_UDP);
 	for(;;)

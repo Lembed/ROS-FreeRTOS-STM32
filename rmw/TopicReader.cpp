@@ -143,11 +143,10 @@ void TopicReader::connectPublishers(const void* obj, const char* data)
 				os_printf("URI: %s:::%d\n", ip, port);
 				//os_printf("URI: %s\n", uri);
 				// Check if this uri already exists in a "PublisherURIs" list.
-				if (strcmp(ip, "10.3.84.99"))
+				if (strcmp(ip, "10.3.84.99")) // TODO: replace this with a method to check if ip is not equal self ip
 				{
 					TopicReader* self = (TopicReader*) obj;
 					self->requestTopic(SERVER_IP_ADDRESS, port);
-					break; // TODO: remove this!
 				}
 			}
 			pos = pos3;

@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 // application memory
-char memory[20 * 1024];
+char memory[25 * 1024];
 unsigned int offset = 0;
 
 

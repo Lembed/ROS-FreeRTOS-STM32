@@ -114,6 +114,7 @@ public:
 	UDPConnection* getConnection(uint16_t port);
 	UDPConnection* const* getConnections();
 	const char* getTopic();
+	static void connectSubscribers(const void* obj, const char* data);
 };
 
 #endif /* RMW_TOPICWRITER_H_ */
