@@ -80,6 +80,8 @@ void node1(void* params)
 
 	sqrt_pub = new ros::Publisher;
 	sqrt_pub->advertise<Float32>(n, "sqrt");
+
+
 	//sqrt_pub->advertise<Float32>(n, "sqrt"); // Advertise to "sqrt" topic.
 	ros::Subscriber<Int32>* sub = new ros::Subscriber<Int32>(n, "counter", sqrtCallback); // Subscribe to "sub" topic.
 	//ros::Subscriber<String>* sub = new ros::Subscriber<String>(n, "chatter", testCallback); // Subscribe to "sub" topic.

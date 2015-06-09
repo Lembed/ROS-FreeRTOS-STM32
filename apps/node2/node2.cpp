@@ -18,10 +18,10 @@ void print_float(float f)
 	float square = f * 100;
 	long square_int = (long)(square / 100);
 	long period = ((long)square) % 100;
-	//os_printf("Squared:%d.%d\n", square_int, period);
-	os_printf("print\n");
+	os_printf("Squared:%d.%d\n", square_int, period);
 }
-
+uint32_t square = 0;
+float sqrtNum = 0;
 void squareCallback(const Float32& msg)
 {
 	// Get data from msg.
@@ -30,14 +30,17 @@ void squareCallback(const Float32& msg)
 
 	//print_float(f*f); // Since formatting float (%f) does not work, we use a workaround
 	// Set data for msg to be published.
-	Float32 m;
-	m.data = f*f;
+	//Float32 m;
+	//m.data = f*f;
 	// Publish msg to "squared" topic.
-	square_pub->publish(m);
+	//square_pub->publish(m);
+	square = f*f;
+	sqrtNum = f;
 }
 void loop2()
 {
-
+	os_printf("int:%d\n", square);
+	print_float(sqrtNum);
 }
 
 void node2(void* params)
