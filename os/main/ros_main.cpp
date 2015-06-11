@@ -19,6 +19,7 @@ extern "C"
 #include <XMLRPCServer.h>
 #include <application_tasks.h>
 
+#include "wiring.h"
 
 extern "C"
 void InitNodesTask(void* params)
@@ -73,10 +74,9 @@ void operator delete[](void *ptr)
 	// Do nothing, since once allocated memory cannot be freed!
 }
 
-extern void xmlrpc_task(void* p);
-
 void ros_main(void* p)
 {
+	enableTiming();
 	tr_init();
 	vTaskDelay(1000);
 	XMLRPCServer::start();

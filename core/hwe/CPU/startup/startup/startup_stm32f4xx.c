@@ -19,7 +19,6 @@
   ******************************************************************************
   */
     
-
 /*----------Stack Configuration-----------------------------------------------*/
 #define STACK_SIZE       0x00000200      /*!< Stack size (in Words)           */
 __attribute__ ((section(".co_stack")))
@@ -290,7 +289,6 @@ void Default_Reset_Handler(void)
   /* Call the application's entry point.*/
   main();
 }
-
 
 /**
   *@brief Provide weak aliases for each Exception handler to the Default_Handler.

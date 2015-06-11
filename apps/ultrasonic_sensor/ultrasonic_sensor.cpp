@@ -6,107 +6,78 @@
 #include "Subscriber.h"
 #include "sensor_msgs/Range.h"
 
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-#define SR04_TRIG   (1<<6)
-#define SR04_ECHO   (1<<7)
-#define STM32_TICKS_PER_US          168
-#define STM32_DELAY_US_MULT         (STM32_TICKS_PER_US/3)
+#include "wiring.h"
 
-/**
- * @brief Delay the given number of microseconds.
- *
- * @param us Number of microseconds to delay.
- */
-static inline void delay_us(uint32_t us) {
-    us *= STM32_DELAY_US_MULT;
+#define ECHO_PIN GPIO_PA0
+#define TRIG_PIN GPIO_PC6
 
-    /* fudge for function call overhead  */
-    //us--;
-    asm volatile("   mov r0, %[us]          \n\t"
-                 "1: subs r0, #1            \n\t"
-                 "   bhi 1b                 \n\t"
-                 :
-                 : [us] "r" (us)
-                 : "r0");
+
+xSemaphoreHandle sensorReadSignal;
+
+void SR04_Init(void)
+{
+	// TODO: Why does publishing not work without this delay hack?
+	vTaskDelay(4000);
+	vSemaphoreCreateBinary(sensorReadSignal);
+	pinMode(GPIO_PC6, OUTPUT);
+	pinMode(ECHO_PIN, TRIGGER_RISING_FALLING);
+	// hold TRIG pin low
+	digitalWrite(TRIG_PIN, LOW);
 }
 
-/*
-  Configure SR04 GPIO
- */
-void SR04_Init(void) {
-  GPIO_InitTypeDef GPIO_InitStructure;
-
-  // configuring clock sources for GPIOC
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-
-  /* Configure SR04 pins: PC6 - TRIGGER */
-  GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-  /* Configure SR04 pins: PC7 - ECHO */
-  GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_7;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-  // hold TRIG pin low
-  GPIO_ResetBits(GPIOC, SR04_TRIG);
-}
-#define HCSR04_MAX_RANGE 200
-#define HCSR04_TIMEOUT 50000
+#define HCSR04_MAX_RANGE 300
 #define HCSR04_NUMBER ((float)0.0171821)
-#define HCSR04_MAX_ECHO_DURATION HCSR04_MAX_RANGE * 59
-float SR04_Read()
+
+volatile uint32_t ultrasound_duration;
+uint32_t lastTick = 0;
+
+extern "C"
+void EXTI0_IRQHandler(void)
+{
+	long taskWoken = 0;
+	if (EXTI_GetITStatus(EXTI_Line0) != RESET)
+	{
+		bool isRisingEdge = digitalRead(GPIO_PA0);
+		//digitalWrite(GPIO_PD11, isRisingEdge);
+
+		if (isRisingEdge)
+		{
+			lastTick = micros()/168;
+		}
+		else
+		{
+			ultrasound_duration =  micros()/168 - lastTick;
+			if (ultrasound_duration > 30000)
+				ultrasound_duration = 30000;
+			xSemaphoreGiveFromISR(sensorReadSignal, &taskWoken);
+		}
+
+	    EXTI_ClearITPendingBit(EXTI_Line0);
+	}
+	if (taskWoken)
+		vPortYieldFromISR();
+}
+
+float ping()
 {
 	taskDISABLE_INTERRUPTS();
-	uint32_t time, timeout;
 	/* Trigger low */
-	GPIOC->BSRRH = SR04_TRIG;
+	digitalWrite(TRIG_PIN, LOW);
 	/* Delay 2 us */
-	delay_us(2);
+	delayMicroseconds(2);
 	/* Trigger high for 10us */
-	GPIOC->BSRRL = SR04_TRIG;
+	digitalWrite(TRIG_PIN, HIGH);
 	/* Delay 10 us */
-	delay_us(10);
+	delayMicroseconds(10);
 	/* Trigger low */
-	GPIOC->BSRRH = SR04_TRIG;
-
-
-	/* Give some time for response
-	timeout = HCSR04_TIMEOUT;
-	while (GPIO_ReadInputDataBit(GPIOC, SR04_ECHO)) {
-		if (timeout-- == 0x00) {
-			return -1;
-		}
-	}*/
-	/* Give some time for response */
-	timeout = HCSR04_TIMEOUT;
-	while (!GPIO_ReadInputDataBit(GPIOC, SR04_ECHO)) {
-		if (timeout-- == 0x00) {
-			return 0;
-		}
-	}
-	/* Start time */
-	time = 0;
-	/* Wait till signal is low */
-	while (GPIO_ReadInputDataBit(GPIOC, SR04_ECHO)) {
-		/* Increase time and check for max duration */
-		if (time++ > 10000)
-			return HCSR04_MAX_RANGE;
-		/* Delay 1us */
-		delay_us(1);
-
-	}
+	digitalWrite(TRIG_PIN, LOW);
 	taskENABLE_INTERRUPTS();
-	/* Convert us to cm */
-	float distance =  (float)time * HCSR04_NUMBER;
+	float distance = -1;
+	if (xSemaphoreTake(sensorReadSignal, 50))
+	{
+		// Get distance in us and convert us to cm
+		distance =  (float)ultrasound_duration * HCSR04_NUMBER;
+	}
 
 	if (distance > HCSR04_MAX_RANGE)
 		return HCSR04_MAX_RANGE;
@@ -117,30 +88,59 @@ float SR04_Read()
 
 using namespace sensor_msgs;
 
-void ultrasonic_sensor(void* params)
-{
-	ros::Node* n = new ros::Node("nodeD");
-	ros::Publisher* pub = new ros::Publisher;
-	pub->advertise<Range>(n, "ultrasound");
+#define NO_ECHO -1
+#define PING_MEDIAN_PERIOD 40
+float pingMedian(uint8_t it) {
+	float uS[it], last;
+	uint8_t j, i = 0;
+	unsigned long t;
+	uS[0] = NO_ECHO;
+	portTickType xLastWakeTime=xTaskGetTickCount();
+	while (i < it) {
+		last = ping(); // Send ping.
 
+		if (last != NO_ECHO) { // Ping in range, include as part of median.
+			if (i > 0) {               // Don't start sort till second ping.
+				for (j = i; j > 0 && uS[j - 1] < last; j--) // Insertion sort loop.
+					uS[j] = uS[j - 1]; // Shift ping array to correct position for sort insertion.
+			} else j = 0;              // First ping is sort starting point.
+			uS[j] = last;              // Add last ping to array in sorted position.
+			i++;                       // Move to next ping.
+		} else it--;           // Ping out of range, skip and don't include as part of median.
+
+		// Millisecond delay between pings.
+		vTaskDelayUntil(&xLastWakeTime, PING_MEDIAN_PERIOD);
+
+	}
+	return (uS[it >> 1]); // Return the ping distance median.
+}
+
+
+ros::Publisher* ultrasonic_pub;
+void ultrasonicLoop()
+{
 	Range msg;
 	msg.radiation_type = Range::ULTRASOUND;
 	msg.min_range = 0.03f;
 	msg.max_range = 2.0f;
-
-	SR04_Init();
-	LOOP(200,
-
-	float distance_m = SR04_Read() / 100.0f;
+	float distance_m = pingMedian(5)/100.0f; //ping() / 100.0f;
 
 	if (distance_m > -1)
 	{
-		//os_printf("Distance: %d cm\n", (long)distance_cm);
 		msg.range = distance_m;
-		pub->publish(msg);
+		if (msg.range < 0.03f)
+			msg.range = 0.03f;
+		ultrasonic_pub->publish(msg);
 	}
-	// start while
-	//os_printf("Distance:\t%d\tcm", SR04read());
-	// end while
-	)
+}
+
+void ultrasonic_sensor(void* params)
+{
+	ros::Node* n = new ros::Node("nodeD");
+	ultrasonic_pub = new ros::Publisher;
+	ultrasonic_pub->advertise<Range>(n, "ultrasound");
+
+
+	SR04_Init();
+	spinLoop(ultrasonicLoop, 100);
 }

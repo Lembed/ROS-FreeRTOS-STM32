@@ -41,13 +41,24 @@ extern void ros_main(void*);
 
 
 #include "stm32f4_discovery.h"
+#include "wiring.h"
 
 void led_task(void* p)
 {
-	STM_EVAL_LEDInit(LED4);
+	/*STM_EVAL_LEDInit(LED4);
 	for( ;; ) {
 			// toggle LED4 each 250ms
 	        STM_EVAL_LEDToggle(LED4);
+	        vTaskDelay(250);
+	      }*/
+
+	pinMode(GPIO_PD12, OUTPUT);
+	for( ;; ) {
+			// toggle LED4 each 250ms
+	        //STM_EVAL_LEDToggle(LED4);
+			digitalWrite(GPIO_PD12, HIGH);
+	        vTaskDelay(250);
+			digitalWrite(GPIO_PD12, LOW);
 	        vTaskDelay(250);
 	      }
 }

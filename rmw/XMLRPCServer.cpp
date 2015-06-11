@@ -680,8 +680,8 @@ void XMLRPCServer::UDPreceive(void* params)
 						uint16_t port;
 						ip = buf->addr;
 						port = buf->port;
-						if(ip != NULL)
-						os_printf("Received from %d:%d!\n", ip->addr, port);
+						//if(ip != NULL)
+						//os_printf("Received from %d:%d!\n", ip->addr, port);
 						// Copy received data into message.
 						uint16_t len = netbuf_len(buf);
 						if (len>15)
@@ -692,14 +692,18 @@ void XMLRPCServer::UDPreceive(void* params)
 							if (tr != NULL)
 							{
 								tr->enqueueMessage(&message[8]);
-								os_printf("ConnectionID: %d, topic:%s\n", connectionID, tr->getTopic());
+								//os_printf("ConnectionID: %d, topic:%s\n", connectionID, tr->getTopic());
 							}
 						}
 						// Deallocate previously created memory.
 						netbuf_delete(buf);
 					}
 					// Use delay until to guarantee periodic execution of each loop iteration.
-					//vTaskDelayUntil(&xLastWakeTime, 10);
+					else
+					{
+						os_printf("buf = NULL!\n");
+						vTaskDelayUntil(&xLastWakeTime, 30);
+					}
 				}
 			}
 			else

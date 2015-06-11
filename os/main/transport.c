@@ -39,7 +39,9 @@ struct netconn* tr_connect(tr_vars_t* vars)
 {
 	struct netconn* conn = netconn_new( NETCONN_UDP );
     netconn_bind(conn, IP_ADDR_ANY, vars->localPort);
-    netconn_connect(conn, IP_ADDR_BROADCAST, vars->remotePort);
+    struct ip_addr ip;
+    ip.addr = inet_addr("10.3.84.100");
+    netconn_connect(conn, &ip, vars->remotePort);
 
     return conn;
 }

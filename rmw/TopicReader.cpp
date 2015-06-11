@@ -76,9 +76,9 @@ void TopicReader::enqueueMessage(const char* msg)
 	{
 
 	}
-	/*	os_printf("Enqueueing data!\n");
+	/*	os_printf("Enqueueing data!\n");*/
 	else
-		os_printf("Queue is full!\n");*/
+		os_printf("Queue is full!\n");
 }
 void TopicReader::dequeueMessage(char* msg)
 {
