@@ -43,15 +43,13 @@ extern void ros_main(void*);
 #include "stm32f4_discovery.h"
 #include "wiring.h"
 
+extern "C"
+{
+#include "USARTHandler.h"
+}
+
 void led_task(void* p)
 {
-	/*STM_EVAL_LEDInit(LED4);
-	for( ;; ) {
-			// toggle LED4 each 250ms
-	        STM_EVAL_LEDToggle(LED4);
-	        vTaskDelay(250);
-	      }*/
-
 	pinMode(GPIO_PD12, OUTPUT);
 	for( ;; ) {
 			// toggle LED4 each 250ms
@@ -80,9 +78,13 @@ extern "C" void MainTask(void* args)
     vTaskDelete(NULL);
 }
 
+#define USART_BAUD_RATE 9600
+
 int main()
 {
 	SystemInit();
+	init_USART1(USART_BAUD_RATE); // initialize USART1 @ 9600 baud
+
 	xTaskCreate(MainTask, (const signed char*)"MainTask", 1024, NULL, 1, NULL);
 	vTaskStartScheduler();
 	return 0;

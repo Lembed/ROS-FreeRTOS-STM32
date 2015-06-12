@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 // application memory
-char memory[25 * 1024];
+char memory[20 * 1024];
 unsigned int offset = 0;
 
 
@@ -15,7 +15,7 @@ void* os_malloc(unsigned int size)
 	return &memory[index];
 }
 
-
+#include "USARTHandler.h"
 void os_printf(const char* fmt, ...)
 {
     va_list ap;
@@ -25,5 +25,14 @@ void os_printf(const char* fmt, ...)
     vsprintf(string, fmt, ap);
     va_end(ap);
 
-    tr_log(string);
+    if (strlen(string) > 2 && strlen(string) < 128 && string[strlen(string)-1] == '\n' && string[strlen(string)-2] != '\r')
+    {
+    	string[strlen(string)-1] = '\r';
+    	string[strlen(string)] = '\n';
+    }
+
+    taskDISABLE_INTERRUPTS();
+    USART_puts(USART1, (volatile char*)string);
+    taskENABLE_INTERRUPTS();
+    //tr_log(string);
 }
