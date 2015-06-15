@@ -29,8 +29,9 @@ void SR04_Init(void)
 #define HCSR04_NUMBER ((float)0.0171821)
 
 volatile uint32_t ultrasound_duration;
-uint32_t lastTick = 0;
+uint32_t lastMicros = 0;
 
+#define MAX_ULTRASOUND_DURATION 30000
 extern "C"
 void EXTI0_IRQHandler(void)
 {
@@ -42,13 +43,14 @@ void EXTI0_IRQHandler(void)
 
 		if (isRisingEdge)
 		{
-			lastTick = micros()/168;
+			lastMicros = micros();
 		}
 		else
 		{
-			ultrasound_duration =  micros()/168 - lastTick;
-			if (ultrasound_duration > 30000)
-				ultrasound_duration = 30000;
+			ultrasound_duration =  micros() - lastMicros;
+
+			if (ultrasound_duration > MAX_ULTRASOUND_DURATION)
+				ultrasound_duration = MAX_ULTRASOUND_DURATION;
 			xSemaphoreGiveFromISR(sensorReadSignal, &taskWoken);
 		}
 
@@ -58,6 +60,8 @@ void EXTI0_IRQHandler(void)
 		vPortYieldFromISR();
 }
 
+
+#define MAX_WAIT_MS 50
 float ping()
 {
 	taskDISABLE_INTERRUPTS();
@@ -73,12 +77,13 @@ float ping()
 	digitalWrite(TRIG_PIN, LOW);
 	taskENABLE_INTERRUPTS();
 	float distance = -1;
-	if (xSemaphoreTake(sensorReadSignal, 50))
+
+	if (xSemaphoreTake(sensorReadSignal, MAX_WAIT_MS))
 	{
 		// Get distance in us and convert us to cm
 		distance =  (float)ultrasound_duration * HCSR04_NUMBER;
 	}
-
+	// TODO: every value > range is out of range!
 	if (distance > HCSR04_MAX_RANGE)
 		return HCSR04_MAX_RANGE;
 

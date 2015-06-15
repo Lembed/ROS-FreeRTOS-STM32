@@ -144,7 +144,8 @@ void enableTiming(void)
     }
 }
 
+#define CYCCNT_PER_MICROSECOND 168
 uint32_t micros()
 {
-	return *DWT_CYCCNT;
+	return (*DWT_CYCCNT) / CYCCNT_PER_MICROSECOND;
 }
