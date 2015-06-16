@@ -8,7 +8,6 @@ extern "C"
 
 #include "ros.h"
 #include "rcl.h"
-#include "transport.h"
 #include <string.h>
 }
 
@@ -17,7 +16,7 @@ extern "C"
 #include "Publisher.h"
 
 #include <XMLRPCServer.h>
-#include <application_tasks.h>
+#include <nodes.h>
 
 #include "wiring.h"
 
@@ -27,24 +26,13 @@ void InitNodesTask(void* params)
 	unsigned int num_nodes = sizeof(nodes)/sizeof(node_decriptor);
 	for (unsigned int i=0; i< num_nodes; i++)
 	{
-		xTaskCreate(nodes[i].function, (const signed char*)nodes[i].name, configMINIMAL_STACK_SIZE*4, NULL, tskIDLE_PRIORITY + 2, NULL);
+		xTaskCreate(nodes[i].function, (const signed char*)nodes[i].name, configMINIMAL_STACK_SIZE*4, NULL, tskIDLE_PRIORITY + 4, NULL);
 	}
 
 
 
 	vTaskDelete(NULL);
 }
-
-#include "std_msgs/Int32.h"
-#include "std_msgs/Float32.h"
-
-using namespace std_msgs;
-
-void mycallback(const Int32& msg)
-{
-	os_printf("My Callback: %d\n", msg.data);
-}
-
 
 void spinLoop(void (*callback)(void), unsigned int period)
 {
@@ -76,7 +64,7 @@ void operator delete[](void *ptr)
 
 
 #define TSK_workload_PRIO                   ( tskIDLE_PRIORITY + 1UL )
-#define TSK_monitor_PRIO                    ( tskIDLE_PRIORITY + 4UL )
+#define TSK_monitor_PRIO                    ( tskIDLE_PRIORITY + 5UL )
 #define TSK_monitor_PERIOD          ( ( portTickType ) 5000   / portTICK_RATE_MS )
 #define PRINT_LOAD true
 #define TSK_Monitor_STACK_SIZE				200
@@ -138,8 +126,8 @@ void Monitor( void *pvParameters )
      }
 }
 
-#define HIGHLOAD_COUNTER 20000000
-#define HIGHLOAD_PERIOD 5
+#define HIGHLOAD_COUNTER 200000
+#define HIGHLOAD_PERIOD 50000
 
 
 extern "C"
@@ -160,17 +148,19 @@ void highLoadTask( void *pvParameters )
 	}
 }
 
+extern "C" void TerminalTask(void*);
+
 void ros_main(void* p)
 {
-	xTaskCreate( Monitor, (const signed char*)"load", TSK_Monitor_STACK_SIZE, NULL, TSK_monitor_PRIO, NULL);
+	//xTaskCreate( Monitor, (const signed char*)"load", TSK_Monitor_STACK_SIZE, NULL, TSK_monitor_PRIO, NULL);
 
 	enableTiming();
-	tr_init();
-	vTaskDelay(1000);
+	// TODO: Why is this delay necessary? Put a signaling mechanism instead, if the tasks below have to wait for some initialization.
+	vTaskDelay(4000);
 	XMLRPCServer::start();
-    xTaskCreate(highLoadTask, (const signed char*)"HighLoadTask", 128, NULL, tskIDLE_PRIORITY + 3, NULL);
+	//xTaskCreate(highLoadTask, (const signed char*)"HighLoadTask", 128, NULL, tskIDLE_PRIORITY + 3, NULL);
 
-
+	xTaskCreate(TerminalTask, (const signed char*)"TerminalTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 
     xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 

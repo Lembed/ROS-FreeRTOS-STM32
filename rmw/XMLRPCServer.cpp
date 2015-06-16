@@ -6,8 +6,6 @@
 #include "tcpip.h"
 #include "api.h"
 
-
-
 extern "C"
 {
 #include "ros.h"
@@ -25,13 +23,6 @@ extern "C"
 
 
 #include "netconf.h"
-
-
-
-
-
-
-
 
 bool XMLRPCServer::isUDPReceiveTaskCreated = false;
 
@@ -375,7 +366,8 @@ TopicWriter* topicWriters[MAX_TOPIC_WRITERS];
 
 #define MAX_TOPIC_READERS 10
 TopicReader* topicReaders[MAX_TOPIC_READERS];
-
+bool pin3 = true;
+#include "wiring.h"
 void XMLRPCServer::UDPSend(void* params)
 {
 	UDPHandler* uh = UDPHandler::instance();
@@ -383,27 +375,33 @@ void XMLRPCServer::UDPSend(void* params)
 	netconn_bind(conn, IP_ADDR_ANY, UDP_LOCAL_PORT);
 	static uint8_t counter = 1;
 
+	pinMode(GPIO_PD11, OUTPUT);
+	UDPMessage msg;
+	EndPoint endpoint;
+	endpoint.ip.addr = inet_addr("10.3.84.100");
 	for(;;)
 	{
-		UDPMessage msg;
+		//digitalWrite(GPIO_PD11, HIGH);
+		digitalWrite(GPIO_PD11, pin3);
 		uh->dequeueMessage(&msg);
+		//digitalWrite(GPIO_PD11, LOW);
+
+		// inter-node communication
+		TopicReader* tr = getTopicReader(msg.topic);
+		if (tr != NULL)
+		{
+			tr->enqueueMessage(msg.data);
+		}
 
 		TopicWriter* tw = getTopicWriter(msg.topic);
 		if (tw != NULL)
 		{
-			// inter-node communication
-			TopicReader* tr = getTopicReader(msg.topic);
-			if (tr != NULL)
-			{
-				tr->enqueueMessage(msg.data);
-			}
 
-			EndPoint endpoint;
-			endpoint.ip.addr = inet_addr("10.3.84.100");
 			UDPConnection* const* connections = tw->getConnections();
 			if (connections != NULL)
 			{
-				for(int i= 0; i<MAX_UDP_CONNECTIONS; i++)
+				//for(int i= 0; i<MAX_UDP_CONNECTIONS; i++)
+				for(int i= 0; i<1; i++)
 				{
 					const UDPConnection* connection = connections[i];
 					if (connection)
@@ -411,7 +409,8 @@ void XMLRPCServer::UDPSend(void* params)
 						endpoint.port = connection->getPort();
 						endpoint.connectionID = connection->getID();
 						err_t err = netconn_connect(conn, &endpoint.ip, endpoint.port);
-						os_printf("Connecting %s:%d, err:%d\n",endpoint.ip, endpoint.port, err);
+
+						//os_printf("Connecting %s:%d, err:%d\n",endpoint.ip, endpoint.port, err);
 						struct netbuf *buf = netbuf_new();
 						char msgHeader[8];
 						memcpy(&msgHeader[0], &endpoint.connectionID, sizeof(uint32_t));
@@ -424,12 +423,15 @@ void XMLRPCServer::UDPSend(void* params)
 
 						memcpy (data, msgHeader, sizeof (msgHeader));
 						memcpy (data+sizeof (msgHeader), msg.data, msgLen);
+
 						netconn_send(conn, buf);
+
 						netbuf_delete(buf);
 					}
 				}
 			}
 		}
+		pin3 = !pin3;
 	}
 }
 

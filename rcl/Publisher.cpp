@@ -34,9 +34,8 @@
 
 #include "Publisher.h"
 #include "rcl.h"
-#include "transport.h"
 #include <string.h>
-
+#include "wiring.h"
 namespace ros {
 unsigned int Publisher::publisherCount = 0;
 Publisher::Publisher()
@@ -47,6 +46,7 @@ Publisher::Publisher()
 void Publisher::publish(const Msg& msg)
 {
 	tw->publishMsg(msg);
+	//digitalWrite(GPIO_PD11, HIGH);
 }
 
 }

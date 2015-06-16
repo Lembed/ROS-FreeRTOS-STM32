@@ -26,12 +26,16 @@ void SR04_Init(void)
 }
 
 #define HCSR04_MAX_RANGE 300
+#define HCSR04_MIN_RANGE 3
 #define HCSR04_NUMBER ((float)0.0171821)
 
 volatile uint32_t ultrasound_duration;
 uint32_t lastMicros = 0;
 
-#define MAX_ULTRASOUND_DURATION 30000
+
+#define MAX_ULTRASOUND_DURATION_US   HCSR04_MAX_RANGE / HCSR04_NUMBER
+#define MAX_ULTRASOUND_DURATION_MS (uint32_t)(MAX_ULTRASOUND_DURATION_US / 1000.0f)
+
 extern "C"
 void EXTI0_IRQHandler(void)
 {
@@ -49,8 +53,8 @@ void EXTI0_IRQHandler(void)
 		{
 			ultrasound_duration =  micros() - lastMicros;
 
-			if (ultrasound_duration > MAX_ULTRASOUND_DURATION)
-				ultrasound_duration = MAX_ULTRASOUND_DURATION;
+			if (ultrasound_duration > MAX_ULTRASOUND_DURATION_US)
+				ultrasound_duration = MAX_ULTRASOUND_DURATION_US;
 			xSemaphoreGiveFromISR(sensorReadSignal, &taskWoken);
 		}
 
@@ -60,8 +64,8 @@ void EXTI0_IRQHandler(void)
 		vPortYieldFromISR();
 }
 
+#define NO_ECHO -1
 
-#define MAX_WAIT_MS 50
 float ping()
 {
 	taskDISABLE_INTERRUPTS();
@@ -76,16 +80,19 @@ float ping()
 	/* Trigger low */
 	digitalWrite(TRIG_PIN, LOW);
 	taskENABLE_INTERRUPTS();
-	float distance = -1;
-
-	if (xSemaphoreTake(sensorReadSignal, MAX_WAIT_MS))
+	float distance = NO_ECHO;
+	// TODO: Depending on the period, this might cause extra delays!
+	if (xSemaphoreTake(sensorReadSignal, MAX_ULTRASOUND_DURATION_MS))
 	{
 		// Get distance in us and convert us to cm
 		distance =  (float)ultrasound_duration * HCSR04_NUMBER;
 	}
-	// TODO: every value > range is out of range!
+	// every value > range is out of range!
 	if (distance > HCSR04_MAX_RANGE)
-		return HCSR04_MAX_RANGE;
+		return NO_ECHO;
+
+	if (distance < HCSR04_MIN_RANGE)
+		return HCSR04_MIN_RANGE;
 
 	/* Return distance */
 	return distance;
@@ -93,8 +100,8 @@ float ping()
 
 using namespace sensor_msgs;
 
-#define NO_ECHO -1
-#define PING_MEDIAN_PERIOD 40
+
+#define PING_MEDIAN_PERIOD 20
 float pingMedian(uint8_t it) {
 	float uS[it], last;
 	uint8_t j, i = 0;
@@ -133,8 +140,6 @@ void ultrasonicLoop()
 	if (distance_m > -1)
 	{
 		msg.range = distance_m;
-		if (msg.range < 0.03f)
-			msg.range = 0.03f;
 		ultrasonic_pub->publish(msg);
 	}
 }
