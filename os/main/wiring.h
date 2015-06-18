@@ -3,6 +3,7 @@ typedef enum mode { OUTPUT, INPUT, TRIGGER_RISING, TRIGGER_FALLING, TRIGGER_RISI
 #define LOW false
 
 #include "stdint.h"
+#include "stm32f4xx.h"
 
 #define GPIO_PA0 0x0
 #define GPIO_PA1 0x1

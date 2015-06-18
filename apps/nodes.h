@@ -4,6 +4,7 @@
 #include "nodes/node1/node1.h"
 #include "nodes/node2/node2.h"
 #include "nodes/ultrasonic_sensor/ultrasonic_sensor.h"
+#include "nodes/test/test.h"
 
 typedef struct node_descriptor {
 	char name[32];
@@ -13,6 +14,7 @@ typedef struct node_descriptor {
 
 node_decriptor nodes[] = {
 		{"ultrasonic_sensor", ultrasonic_sensor},
+		{"test", test},
 		//{"node1", node1},
 		//{"node2", node2}
 };
