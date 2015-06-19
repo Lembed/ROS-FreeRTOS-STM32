@@ -74,6 +74,9 @@ static void icmp_send_response(struct pbuf *p, u8_t type, u8_t code);
  * @param p the icmp echo request packet, p->payload pointing to the ip header
  * @param inp the netif on which this packet was received
  */
+
+extern void ICMP_callback(struct pbuf *p, struct netif *inp);
+
 void
 icmp_input(struct pbuf *p, struct netif *inp)
 {
@@ -91,9 +94,12 @@ icmp_input(struct pbuf *p, struct netif *inp)
 
 
   iphdr = p->payload;
+  ICMP_callback(p, inp);
+
   hlen = IPH_HL(iphdr) * 4;
   if (pbuf_header(p, -hlen) || (p->tot_len < sizeof(u16_t)*2)) {
     LWIP_DEBUGF(ICMP_DEBUG, ("icmp_input: short ICMP (%"U16_F" bytes) received\n", p->tot_len));
+
     goto lenerr;
   }
 

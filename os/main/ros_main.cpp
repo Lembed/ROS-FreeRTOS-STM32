@@ -153,14 +153,12 @@ extern "C" void TerminalTask(void*);
 void ros_main(void* p)
 {
 	//xTaskCreate( Monitor, (const signed char*)"load", TSK_Monitor_STACK_SIZE, NULL, TSK_monitor_PRIO, NULL);
-
+	xTaskCreate(TerminalTask, (const signed char*)"TerminalTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 	enableTiming();
 	// TODO: Why is this delay necessary? Put a signaling mechanism instead, if the tasks below have to wait for some initialization.
 	vTaskDelay(4000);
 	XMLRPCServer::start();
 	//xTaskCreate(highLoadTask, (const signed char*)"HighLoadTask", 128, NULL, tskIDLE_PRIORITY + 3, NULL);
-
-	xTaskCreate(TerminalTask, (const signed char*)"TerminalTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 
     xTaskCreate(InitNodesTask, (const signed char*)"InitNodesTask", 128, NULL, tskIDLE_PRIORITY + 2, NULL);
 

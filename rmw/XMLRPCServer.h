@@ -11,6 +11,7 @@ static bool isUDPReceiveTaskCreated;
 
 public:
 	static void UDPSend(void* params);
+	static TopicWriter* getTopicWriter(const uint16_t port);
 	static TopicWriter* getTopicWriter(const char* topic);
 	static TopicReader* getTopicReader(const char* topic);
 	static TopicReader* getTopicReader(const uint32_t connectionID);

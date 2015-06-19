@@ -11,17 +11,8 @@ using namespace sensor_msgs;
 
 ros::Publisher* ultrasonic_pub;
 
-#include "Queue.h"
-Queue* testQ;
-#define QUEUE_LENGTH 20
-#define QUEUE_SIZE 4
-uint32_t counter1 = 0;
 void ultrasonicLoop()
 {
-	counter1++;
-	testQ->enqueue((void*) &counter1);
-	os_printf("enqueue %d!\n", counter1);
-	return;
 	Range msg;
 	msg.radiation_type = Range::ULTRASOUND;
 	msg.min_range = 0.03f;
@@ -41,7 +32,6 @@ void ultrasonic_sensor(void* params)
 	ultrasonic_pub = new ros::Publisher;
 	ultrasonic_pub->advertise<Range>(n, "ultrasound");
 
-	testQ = new Queue(QUEUE_LENGTH, QUEUE_SIZE);
-	//HCSR04::init();
-	spinLoop(ultrasonicLoop, 30);
+	HCSR04::init();
+	spinLoop(ultrasonicLoop, 300);
 }

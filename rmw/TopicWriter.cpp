@@ -16,7 +16,7 @@ TopicWriter::TopicWriter(const char* callerID, const char* topic, const char* ms
 	qHandle = xQueueCreate(QUEUE_LEN, QUEUE_MSG_SIZE);
 
 	XMLRequest* req = new RegisterRequest("registerPublisher", MASTER_URI, callerID, topic, msgType);
-	XMLRPCServer::sendRequest(req->getData(), 11311, connectSubscribers);
+	XMLRPCServer::sendRequest(req->getData(), 11311, connectSubscribers, this);
 }
 void TopicWriter::serializeMsg(const ros::Msg& msg, unsigned char* outbuffer)
 {
@@ -35,8 +35,39 @@ void TopicWriter::publishMsg(const ros::Msg& msg)
 	uh->enqueueMessage(&udpMessage);
 }
 
+UDPConnection* TopicWriter::createConnection(uint16_t port)
+{
+	if (lastConnectionsIndex < MAX_UDP_CONNECTIONS)
+	{
+		UDPConnection* conn = new UDPConnection(port);
+		connections[lastConnectionsIndex] = conn;
+		lastConnectionsIndex++;
+		os_printf("Created connection to port %d.\n", port);
+		return conn;
+	}
+	else
+	{
+		// Look for connections with port = 0
+		for(uint16_t i=0; i<MAX_UDP_CONNECTIONS; i++)
+		{
+			if (connections[i] != NULL && connections[i]->getPort() == 0)
+			{
+				return connections[i];
+			}
+		}
+
+		os_printf("Cannot create more than %d UDP connections!\n", MAX_UDP_CONNECTIONS);
+	}
+}
+
 UDPConnection* TopicWriter::getConnection(uint16_t port)
 {
+	if (port == 0)
+	{
+		os_printf("0 is an invalid UDP port!\n");
+		return NULL;
+	}
+
 	if (lastConnectionsIndex < MAX_TOPIC_LEN)
 	{
 		for(uint16_t i=0; i<MAX_UDP_CONNECTIONS; i++)
@@ -47,9 +78,7 @@ UDPConnection* TopicWriter::getConnection(uint16_t port)
 			}
 		}
 
-		UDPConnection* conn = new UDPConnection(port);
-		connections[lastConnectionsIndex++] = conn;
-		return conn;
+		return createConnection(port);
 	}
 	return NULL;
 }
@@ -64,7 +93,7 @@ const char* TopicWriter::getTopic()
 
 void TopicWriter::connectSubscribers(const void* obj, const char* data)
 {
-	char text[100];
+	os_printf("Connect subscribers!\n");
 	char* pos = strstr((char*)data, "as publisher of");
 	if (pos != 0)
 	{
@@ -99,5 +128,19 @@ void TopicWriter::connectSubscribers(const void* obj, const char* data)
 	}
 	else
 		os_printf("pos is NULL\n");
+
+}
+
+
+void TopicWriter::deleteConnection(uint16_t port)
+{
+	for(uint16_t i=0; i<MAX_UDP_CONNECTIONS; i++)
+	{
+		if (connections[i] != NULL && connections[i]->getPort() == port)
+		{
+			connections[i]->setPort(0);
+			return;
+		}
+	}
 
 }

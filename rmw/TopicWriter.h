@@ -41,6 +41,8 @@ public:
 	}
 	uint32_t getID() const { return ID; }
 	uint16_t getPort() const { return port; }
+	void setPort(uint16_t port) { this->port = port; }
+	bool isValid() const { return port != 0; }
 };
 #include "rcl.h"
 #include "msg.h"
@@ -107,6 +109,7 @@ class TopicWriter
 	uint16_t lastConnectionsIndex;
 	UDPConnection* connections[MAX_UDP_CONNECTIONS];
 	xQueueHandle qHandle;
+	UDPConnection* createConnection(uint16_t port);
 public:
 	TopicWriter(const char* callerID, const char* topic, const char* msgType);
 	void serializeMsg(const ros::Msg& msg, unsigned char* outbuffer);

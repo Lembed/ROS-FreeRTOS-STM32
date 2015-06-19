@@ -361,6 +361,20 @@ private:
 
 
 
+extern "C" void ICMP_callback(struct pbuf *p, struct netif *inp)
+{
+	if (*(((u8_t *)p->payload)+20) == 3) // Port unreachable
+	{
+		uint16_t port = ntohs(*(((u16_t *)(p->payload+50))));
+		os_printf("icmp_input: type: %d port: %d\n", *(((u8_t *)p->payload)+20), ntohs(*(((u16_t *)(p->payload+50)))));
+		//os_printf("icmp_input: %08x %08x\n", *(((u32_t *)p->payload)), *(((u32_t *)p->payload)+1));
+		TopicWriter* tw = XMLRPCServer::getTopicWriter(port);
+		tw->deleteConnection(port);
+	}
+}
+
+
+
 #define MAX_TOPIC_WRITERS 10
 TopicWriter* topicWriters[MAX_TOPIC_WRITERS];
 
@@ -400,15 +414,15 @@ void XMLRPCServer::UDPSend(void* params)
 			UDPConnection* const* connections = tw->getConnections();
 			if (connections != NULL)
 			{
-				//for(int i= 0; i<MAX_UDP_CONNECTIONS; i++)
-				for(int i= 0; i<1; i++)
+				for(int i= 0; i<MAX_UDP_CONNECTIONS; i++)
 				{
 					const UDPConnection* connection = connections[i];
-					if (connection)
+					if (connection && connection->isValid())
 					{
 						endpoint.port = connection->getPort();
 						endpoint.connectionID = connection->getID();
 						err_t err = netconn_connect(conn, &endpoint.ip, endpoint.port);
+						os_printf("1Port: %d LWIP Error:%d\n", endpoint.port, err);
 
 						//os_printf("Connecting %s:%d, err:%d\n",endpoint.ip, endpoint.port, err);
 						struct netbuf *buf = netbuf_new();
@@ -424,7 +438,8 @@ void XMLRPCServer::UDPSend(void* params)
 						memcpy (data, msgHeader, sizeof (msgHeader));
 						memcpy (data+sizeof (msgHeader), msg.data, msgLen);
 
-						netconn_send(conn, buf);
+						err = netconn_send(conn, buf);
+						os_printf("2Port: %d LWIP Error:%d\n", endpoint.port, err);
 
 						netbuf_delete(buf);
 					}
@@ -433,6 +448,29 @@ void XMLRPCServer::UDPSend(void* params)
 		}
 		pin3 = !pin3;
 	}
+}
+
+TopicWriter* XMLRPCServer::getTopicWriter(const uint16_t port)
+{
+	for(uint16_t i=0; i<MAX_TOPIC_WRITERS;i++)
+	{
+		if (topicWriters[i] != NULL)
+		{
+			TopicWriter* tw = topicWriters[i];
+			if (tw)
+			{
+				UDPConnection** connections = (UDPConnection**)tw->getConnections();
+				for(uint16_t i=0; i<MAX_UDP_CONNECTIONS; i++)
+				{
+					if (connections[i] != NULL && connections[i]->getPort() != 0)
+					{
+						return tw;
+					}
+				}
+			}
+		}
+	}
+	return NULL;
 }
 
 TopicWriter* XMLRPCServer::getTopicWriter(const char* topic)
@@ -618,6 +656,10 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 		else
 			os_printf("pos is NULL\n");
 
+	}
+	else if (!strcmp(methodName, "unregisterSubscriber"))
+	{
+		os_printf("UNREGISTER_SUBSCRIBER!\n");
 	}
 }
 
