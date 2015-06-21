@@ -8,7 +8,8 @@ set(CMAKE_SYSTEM_VERSION 1)
 set(CMAKE_SYSTEM_PROCESSOR arm-eabi)
 
 # Default toolchain path
-set(TOOLCHAIN_PATH "/opt/CodeSourcery/arm-2011.09/bin/")
+#set(TOOLCHAIN_PATH "/opt/CodeSourcery/arm-2011.09/bin/")
+set(TOOLCHAIN_PATH "")
 
 # which compilers to use for C and C++
 set(CMAKE_C_COMPILER       ${TOOLCHAIN_PATH}arm-none-eabi-gcc)
