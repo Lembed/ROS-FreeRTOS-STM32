@@ -16,7 +16,7 @@ An embedded system supporting multiple ROS nodes that are able to communicate wi
 
 The software concept is shown in the below image. Blue blocks represent FreeRTOS tasks.
 
-![](https://github.com/bosch-ros-pkg/stm32/blob/refactored/ROS.png)
+![](https://github.com/bosch-ros-pkg/stm32/blob/refactored/doc/ROS.png)
 
 ## Notes:
 - Node functions specified in nodes.h (a task table).
