@@ -58,7 +58,7 @@ void pinMode(uint16_t pin, Mode mode)
 	if (mode == OUTPUT)
 	{
 		/* Configure the pin */
-		GPIO_InitStructure.GPIO_Pin |= 0x1 << (pin & 0xF);
+		GPIO_InitStructure.GPIO_Pin = 0x1 << (pin & 0xF);
 		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 		GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;

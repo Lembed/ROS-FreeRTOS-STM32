@@ -73,6 +73,75 @@ typedef enum mode { OUTPUT, INPUT, TRIGGER_RISING, TRIGGER_FALLING, TRIGGER_RISI
 #define GPIO_PD14 0x3E
 #define GPIO_PD15 0x3F
 
+#define GPIO_PE0 0x40
+#define GPIO_PE1 0x41
+#define GPIO_PE2 0x42
+#define GPIO_PE3 0x43
+#define GPIO_PE4 0x44
+#define GPIO_PE5 0x45
+#define GPIO_PE6 0x46
+#define GPIO_PE7 0x47
+#define GPIO_PE8 0x48
+#define GPIO_PE9 0x49
+#define GPIO_PE10 0x4A
+#define GPIO_PE11 0x4B
+#define GPIO_PE12 0x4C
+#define GPIO_PE13 0x4D
+#define GPIO_PE14 0x4E
+#define GPIO_PE15 0x4F
+
+#define GPIO_PF0 0x50
+#define GPIO_PF1 0x51
+#define GPIO_PF2 0x52
+#define GPIO_PF3 0x53
+#define GPIO_PF4 0x54
+#define GPIO_PF5 0x55
+#define GPIO_PF6 0x56
+#define GPIO_PF7 0x57
+#define GPIO_PF8 0x58
+#define GPIO_PF9 0x59
+#define GPIO_PF10 0x5A
+#define GPIO_PF11 0x5B
+#define GPIO_PF12 0x5C
+#define GPIO_PF13 0x5D
+#define GPIO_PF14 0x5E
+#define GPIO_PF15 0x5F
+
+#define GPIO_PG0 0x60
+#define GPIO_PG1 0x61
+#define GPIO_PG2 0x62
+#define GPIO_PG3 0x63
+#define GPIO_PG4 0x64
+#define GPIO_PG5 0x65
+#define GPIO_PG6 0x66
+#define GPIO_PG7 0x67
+#define GPIO_PG8 0x68
+#define GPIO_PG9 0x69
+#define GPIO_PG10 0x6A
+#define GPIO_PG11 0x6B
+#define GPIO_PG12 0x6C
+#define GPIO_PG13 0x6D
+#define GPIO_PG14 0x6E
+#define GPIO_PG15 0x6F
+
+#define GPIO_PH0 0x70
+#define GPIO_PH1 0x71
+#define GPIO_PH2 0x72
+#define GPIO_PH3 0x73
+#define GPIO_PH4 0x74
+#define GPIO_PH5 0x75
+#define GPIO_PH6 0x76
+#define GPIO_PH7 0x77
+#define GPIO_PH8 0x78
+#define GPIO_PH9 0x79
+#define GPIO_PH10 0x7A
+#define GPIO_PH11 0x7B
+#define GPIO_PH12 0x7C
+#define GPIO_PH13 0x7D
+#define GPIO_PH14 0x7E
+#define GPIO_PH15 0x7F
+
+
 
 void digitalWrite(uint16_t pin, bool value);
 bool digitalRead(uint16_t pin);
