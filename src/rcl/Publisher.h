@@ -40,7 +40,7 @@
 #include <string.h>
 #include "TopicWriter.h"
 #include "XMLRPCServer.h"
-#define QUEUE_MSG_SIZE 128
+//#define QUEUE_MSG_SIZE 128
 extern "C" void tr_publish(void*,void*);
 namespace ros {
 

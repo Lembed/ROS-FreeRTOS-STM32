@@ -28,7 +28,7 @@ void ultrasonicLoop()
 
 void ultrasonic_sensor(void* params)
 {
-	ros::Node* n = new ros::Node("nodeD");
+	ros::Node* n = new ros::Node("ultrasonic_sensor");
 	ultrasonic_pub = new ros::Publisher;
 	ultrasonic_pub->advertise<Range>(n, "ultrasound");
 

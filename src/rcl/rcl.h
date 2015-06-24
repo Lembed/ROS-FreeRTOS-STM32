@@ -1,4 +1,4 @@
-#define QUEUE_MSG_SIZE 128
+//#define QUEUE_MSG_SIZE 128
 #include <stdint.h>
 #include "stm32f4xx.h"
 

@@ -20,7 +20,7 @@ typedef struct EndPoint
 typedef struct UDPMessage
 {
 	char topic[MAX_TOPIC_LEN];
-	char data[128];
+	char data[250]; // TODO: Implement new functionality to set this while creating TopicWriter so that there is no redundant space in queue.
 } UDPMessage;
 
 #define MAX_UDP_CONNECTIONS 20
