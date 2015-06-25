@@ -422,7 +422,7 @@ void XMLRPCServer::UDPSend(void* params)
 						endpoint.port = connection->getPort();
 						endpoint.connectionID = connection->getID();
 						err_t err = netconn_connect(conn, &endpoint.ip, endpoint.port);
-						os_printf("1Port: %d LWIP Error:%d\n", endpoint.port, err);
+						//os_printf("1Port: %d LWIP Error:%d\n", endpoint.port, err);
 
 						//os_printf("Connecting %s:%d, err:%d\n",endpoint.ip, endpoint.port, err);
 						struct netbuf *buf = netbuf_new();
@@ -439,7 +439,7 @@ void XMLRPCServer::UDPSend(void* params)
 						memcpy (data+sizeof (msgHeader), msg.data, msgLen);
 
 						err = netconn_send(conn, buf);
-						os_printf("2Port: %d LWIP Error:%d\n", endpoint.port, err);
+						//os_printf("2Port: %d LWIP Error:%d\n", endpoint.port, err);
 
 						netbuf_delete(buf);
 					}
@@ -667,7 +667,7 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 void XMLRPCServer::start()
 {
 	HTTPServer* server = new HTTPServer("HTTPServer", XMLRPC_PORT, XMLRPCServerReceiveCallback);
-	xTaskCreate(UDPSend, (const signed char*)"UDPSend", 256, NULL, tskIDLE_PRIORITY + 2, NULL);
+	xTaskCreate(UDPSend, (const signed char*)"UDPSend", 512, NULL, tskIDLE_PRIORITY + 2, NULL);
 	isUDPReceiveTaskCreated = false;
 
 	xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 256, NULL, tskIDLE_PRIORITY + 3, NULL);

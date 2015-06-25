@@ -30,7 +30,7 @@ void printfloat(const char* label, float f)
 	if (period < 0)
 		period = period * -1;
 
-	os_printf("%s: %d.%d\n", label, num, period);
+	os_printf("%s: %d.%03d\n", label, num, period);
 }
 
 void MPU6050::init()
