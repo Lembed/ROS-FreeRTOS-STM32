@@ -13,15 +13,28 @@
  * 						I2C_Direction_Tranmitter for Master transmitter mode
  * 						I2C_Direction_Receiver for Master receiver
  */
+
+
+
+#define I2C1_TIMEOUT 0x3000
+
+
 void I2C_start(I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction){
+
+	uint32_t timeout = I2C1_TIMEOUT;
 	// wait until I2C1 is not busy anymore
-	while(I2C_GetFlagStatus(I2Cx, I2C_FLAG_BUSY));
+	while(I2C_GetFlagStatus(I2Cx, I2C_FLAG_BUSY)) {
+	    if(timeout!=0) timeout--; else return;
+	}
 
 	// Send I2C1 START condition
 	I2C_GenerateSTART(I2Cx, ENABLE);
 
+	timeout = I2C1_TIMEOUT;
 	// wait for I2C1 EV5 --> Slave has acknowledged start condition
-	while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT));
+	while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT)) {
+	    if(timeout!=0) timeout--; else return;
+	}
 
 	// Send slave Address for write
 	I2C_Send7bitAddress(I2Cx, address, direction);
@@ -32,10 +45,16 @@ void I2C_start(I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction){
 	 * direction
 	 */
 	if(direction == I2C_Direction_Transmitter){
-		while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED));
+		timeout = I2C1_TIMEOUT;
+		while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
+		    if(timeout!=0) timeout--; else return;
+		}
 	}
 	else if(direction == I2C_Direction_Receiver){
-		while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED));
+		timeout = I2C1_TIMEOUT;
+		while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
+		    if(timeout!=0) timeout--; else return;
+		}
 	}
 }
 
@@ -47,8 +66,12 @@ void I2C_start(I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction){
 void I2C_write(I2C_TypeDef* I2Cx, uint8_t data)
 {
 	I2C_SendData(I2Cx, data);
+
+	uint32_t timeout = I2C1_TIMEOUT;
 	// wait for I2C1 EV8_2 --> byte has been transmitted
-	while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED));
+	while(!I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
+	    if(timeout!=0) timeout--; else return;
+	}
 }
 
 /* This function reads one byte from the slave device
@@ -57,8 +80,12 @@ void I2C_write(I2C_TypeDef* I2Cx, uint8_t data)
 uint8_t I2C_read_ack(I2C_TypeDef* I2Cx){
 	// enable acknowledge of recieved data
 	I2C_AcknowledgeConfig(I2Cx, ENABLE);
+
+	uint32_t timeout = I2C1_TIMEOUT;
 	// wait until one byte has been received
-	while( !I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_RECEIVED) );
+	while( !I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_RECEIVED) ) {
+	    if(timeout!=0) timeout--; else return 0;
+	}
 	// read data from I2C data register and return data byte
 	uint8_t data = I2C_ReceiveData(I2Cx);
 	return data;
@@ -73,8 +100,12 @@ uint8_t I2C_read_nack(I2C_TypeDef* I2Cx){
 	// see reference manual for more info
 	I2C_AcknowledgeConfig(I2Cx, DISABLE);
 	I2C_GenerateSTOP(I2Cx, ENABLE);
+
+	uint32_t timeout = I2C1_TIMEOUT;
 	// wait until one byte has been received
-	while( !I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_RECEIVED) );
+	while( !I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_RECEIVED) ) {
+	    if(timeout!=0) timeout--; else return 0;
+	}
 	// read data from I2C data register and return data byte
 	uint8_t data = I2C_ReceiveData(I2Cx);
 	return data;
