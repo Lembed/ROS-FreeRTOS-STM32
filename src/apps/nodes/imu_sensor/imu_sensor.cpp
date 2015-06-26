@@ -1,13 +1,8 @@
 #include "imu_sensor.h"
 #include "rcl.h"
-extern "C" {
-#include "ros.h"
-}
-
 #include "Node.h"
 #include "Publisher.h"
 #include "Subscriber.h"
-
 #include "MPU6050/MPU6050.h"
 #include "sensor_msgs/Imu.h"
 

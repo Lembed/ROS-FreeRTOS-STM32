@@ -8,7 +8,6 @@ public:
 	Node(const char* name);
 	void addSharedObject(const char* name, void* object);
 	void* getSharedObject(const char* name);
-	static Node** list;
 	char name[32];
 private:
 

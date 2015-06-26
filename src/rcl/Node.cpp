@@ -17,14 +17,8 @@ typedef struct node_descriptor {
 } node_decriptor;
 extern node_decriptor nodes;
 
-Node* Nodes_[sizeof(nodes) / sizeof(node_decriptor)];
-
-Node** Node::list = Nodes_;
-
 Node::Node(const char* name)
 {
-	list[++lastNodeIndex] = this;
-	//this->name = name;
 	strcpy(this->name, name);
 }
 

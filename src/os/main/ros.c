@@ -11,7 +11,9 @@ unsigned int offset = 0;
 void* os_malloc(unsigned int size)
 {
 	unsigned int index = offset;
+	taskENTER_CRITICAL();
 	offset += size;
+	taskEXIT_CRITICAL();
 	return &memory[index];
 }
 
