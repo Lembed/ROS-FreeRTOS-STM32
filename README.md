@@ -23,6 +23,35 @@ The software concept is shown in the below image. Blue blocks represent FreeRTOS
 Node functions are specified in the header file (node table) nodes.h, where developers need to type in the entry point of each ROS node on embedded system manually. Data transfer between PC and embedded system is realized using <a href="http://wiki.ros.org/ROS/UDPROS">UDPROS</a> over Ethernet. There is a very simple XMLRPC handling, which does not use any XML parser, to make negotiations with ROS master on a PC. ROS messages are serialized on embedded software using C++ headers generated with <a href="http://wiki.ros.org/rosserial">rosserial</a>'s message generator based on Python.
 
 ## Example Node Function
+Node functions are located in apps/nodes. In order to add a node to the system, the node needs to be registered in apps/nodes.h.
+
+``` cpp
+#ifndef ASW_APPS_APPLICATION_TASKS_H_
+#define ASW_APPS_APPLICATION_TASKS_H_
+
+#include "nodes/ultrasonic_sensor/ultrasonic_sensor.h"
+#include "nodes/imu_sensor/imu_sensor.h"
+#include "nodes/my_node/my_node.h"
+
+typedef struct node_descriptor {
+	char name[32];
+	void (*function)(void* params);
+
+} node_decriptor;
+
+node_decriptor nodes[] = {
+		{"ultrasonic_sensor", ultrasonic_sensor},
+		{"imu_sensor", imu_sensor},
+		{"my_node", my_node_function},
+};
+
+
+#endif /* ASW_APPS_APPLICATION_TASKS_H_ */
+```
+
+For each function registered in nodes.h (i.e. ultrasonic_sensor, imu_sensor, and my_node_function), a function has to be declared and defined, which has an argument of type void*. Here is an example code for ultrasonic_sensor node function.
+
+
 ``` cpp
 #include "ultrasonic_sensor.h"
 #include "rcl.h"
