@@ -71,12 +71,12 @@ void MPU6050::readIMU(IMU* data)
 	data->y_gyro = (float)gyroY * GYRO_SCALE - base_y_gyro;
 	data->z_gyro = (float)gyroZ * GYRO_SCALE - base_z_gyro;
 
-	printfloat("accX", data->x_accel);
+	/*printfloat("accX", data->x_accel);
 	printfloat("accY", data->y_accel);
 	printfloat("accZ", data->z_accel);
 	printfloat("gyroX", data->x_gyro);
 	printfloat("gyroY", data->y_gyro);
-	printfloat("gyroZ", data->z_gyro);
+	printfloat("gyroZ", data->z_gyro);*/
 }
 
 void MPU6050::calibrateSensor()

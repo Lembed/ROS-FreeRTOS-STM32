@@ -1,0 +1,1 @@
+void logger(void* params);

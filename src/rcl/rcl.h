@@ -15,3 +15,6 @@ void spinLoop(void (*callback)(void), unsigned int period);
 					code \
 					vTaskDelayUntil(&xLastWakeTime, period); \
 				   }
+
+
+void LOG(const char* fmt, ...);

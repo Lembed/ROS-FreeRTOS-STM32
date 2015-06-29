@@ -27,15 +27,15 @@
 
 // %Tag(FULLTEXT)%
 #include "ros/ros.h"
-#include "sensor_msgs/Range.h"
+#include "std_msgs/String.h"
 
 /**
  * This tutorial demonstrates simple receipt of messages over the ROS system.
  */
 // %Tag(CALLBACK)%
-void chatterCallback(const sensor_msgs::Range::ConstPtr& msg)
+void chatterCallback(const std_msgs::String::ConstPtr& msg)
 {
-  ROS_INFO("Range: %f min_range: %f max_range: %f", msg->range, msg->min_range, msg->max_range);
+  ROS_INFO("%s", msg->data.c_str());
 }
 // %EndTag(CALLBACK)%
 
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
    * You must call one of the versions of ros::init() before using any other
    * part of the ROS system.
    */
-  ros::init(argc, argv, "ultrasonic_listener");
+  ros::init(argc, argv, "logger_listener");
 
   /**
    * NodeHandle is the main access point to communications with the ROS system.
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
    * away the oldest ones.
    */
 // %Tag(SUBSCRIBER)%
-  ros::Subscriber sub = n.subscribe("ultrasound", 1000, chatterCallback, ros::TransportHints().unreliable());
+  ros::Subscriber sub = n.subscribe("logger", 1000, chatterCallback, ros::TransportHints().unreliable());
 // %EndTag(SUBSCRIBER)%
 
   /**

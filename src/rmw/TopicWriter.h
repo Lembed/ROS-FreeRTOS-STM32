@@ -10,13 +10,6 @@
 #include "tcpip.h"
 #include <string.h>
 
-typedef struct EndPoint
-{
-	uint32_t connectionID;
-	struct ip_addr ip;
-	uint16_t port;
-} EndPoint;
-
 typedef struct UDPMessage
 {
 	char topic[MAX_TOPIC_LEN];

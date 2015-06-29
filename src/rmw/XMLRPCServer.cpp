@@ -115,7 +115,11 @@ private:
 		{
 			if (obj != NULL)
 				receiveCallback(obj, data);
+			else
+				os_printf("Receive callback Obj is null!\n");
 		}
+		else
+			os_printf("Receive callback is null!\n");
 	}
 	void onSent()
 	{
@@ -156,78 +160,6 @@ HTTPClient* HTTPClient::_instance = NULL;
 class TCPServerBase
 {
 private:
-	/*static void tcptask(void* arg)
-	{
-		TCPServerBase* self = (TCPServerBase*) arg;
-		  struct netconn *conn, *newconn;
-		  err_t err;
-
-		  LWIP_UNUSED_ARG(arg);
-
-		  // Create a new connection identifier.
-		  conn = netconn_new(NETCONN_TCP);
-
-		  if (conn!=NULL) {
-		    // Bind connection to the specified port number.
-		    err = netconn_bind(conn, NULL, self->port);
-
-		    if (err == ERR_OK) {
-		      // Tell connection to go into listening mode.
-		      netconn_listen(conn);
-
-		      while (1) {
-		    	  os_printf("netconn Accepting...\n");
-		        // Grab new connection.
-		        newconn = netconn_accept(conn);
-
-		        // Process the new connection.
-		        if (newconn) {
-		          struct netbuf *buf;
-		          char *data;
-		          u16_t len;
-		          os_printf("netconn Accepted...\n");
-
-		          while(!ERR_IS_FATAL(newconn->err)) { //Fatal errors include connections being closed, reset, aborted, etc
-
-		          uint32_t offset = 0;
-		          while ((buf = netconn_recv(newconn)) != NULL) {
-		            do {
-		            	//taskENTER_CRITICAL();
-		              netbuf_data(buf, (void**)&data, &len);
-		              memcpy(self->rxBuffer+offset, data, len);
-		              //netbuf_copy(buf, self->rxBuffer+offset, len);
-		              //taskEXIT_CRITICAL();
-		              offset +=len;
-		              os_printf("Netconn received %d bytes\n", len);
-
-
-		            } while (netbuf_next(buf) >= 0);
-        	        self->onReceive(self->rxBuffer);
-        	        self->receiveCallback(self->rxBuffer, self->buffer);
-        	        netconn_write(newconn, self->buffer, strlen(self->buffer), NETCONN_NOCOPY);
-        	        netbuf_delete(buf);
-		          }
-
-		          // Close connection and discard connection identifier.
-		          netconn_close(newconn);
-		          netconn_delete(newconn);
-		        }
-		        }
-		        else
-		        	os_printf("Fatal Error!!!\n");
-		      }
-		    } else {
-		      os_printf(" can not bind TCP netconn\n");
-		    }
-		  } else {
-			  os_printf("can not create TCP netconn\n");
-		  }
-
-
-	    vTaskDelete(NULL);
-	}*/
-
-
 	static void close_conn(struct tcp_pcb *pcb){
 		      tcp_arg(pcb, NULL);
 		      tcp_sent(pcb, NULL);
@@ -257,13 +189,15 @@ private:
 		        len = p->tot_len;
 
 		        self->onReceive(pc);
-		        self->receiveCallback(pc, self->buffer);
+		        char buffer[1024];
+		        self->receiveCallback(pc, buffer);
 
 		        pbuf_free(p);
 
-		        if (self->buffer != NULL && self->bufferLength > 0)
+		        //if (self->buffer != NULL && self->bufferLength > 0)
+		        //if (strlen(buffer) > 0)
 		        {
-					err = tcp_write(pcb, self->buffer, self->bufferLength, 0);
+					err = tcp_write(pcb, buffer, 1024, 0);
 					tcp_sent(pcb, data_sent);
 		        }
 
@@ -303,28 +237,13 @@ private:
 		    vTaskDelete(NULL);
 		}
 
-
-protected:
-	void createBuffer(uint16_t size)
-	{
-		// Buffer can only be created once.
-		if (buffer == NULL)
-		{
-			bufferLength = size;
-			buffer = new char[bufferLength];
-		}
-	}
 public:
 	TCPServerBase(const char* taskName, uint16_t port, void(*receiveCallback)(const char* data, char* buffer) = NULL)
 	{
 		this->port = port;
 		this->receiveCallback = receiveCallback;
-		xTaskCreate(tcptask, (const signed char*)taskName, 512, this, tskIDLE_PRIORITY + 2, NULL);
+		xTaskCreate(tcptask, (const signed char*)taskName, 1200, this, tskIDLE_PRIORITY + 2, NULL);
 	}
-private:
-	char* buffer;
-	uint16_t bufferLength;
-	char rxBuffer[1024];
 protected:
 	uint16_t port;
 	virtual void onAccept() = 0;
@@ -334,15 +253,12 @@ protected:
 
 };
 
-#define HTTP_SERVER_BUFFER_SIZE 1500
-
 class HTTPServer : public TCPServerBase
 {
 public:
 	HTTPServer(const char* taskName, uint16_t port, void(*receiveCallback)(const char* data, char* buffer) = NULL)
 	: TCPServerBase(taskName, port, receiveCallback)
 	{
-		createBuffer(1500);
 	}
 private:
 	virtual void onAccept()
@@ -355,7 +271,7 @@ private:
 	}
 	virtual void onSendAcknowledged()
 	{
-
+		os_printf("Data sent!\n");
 	}
 };
 
@@ -391,8 +307,8 @@ void XMLRPCServer::UDPSend(void* params)
 
 	pinMode(GPIO_PD11, OUTPUT);
 	UDPMessage msg;
-	EndPoint endpoint;
-	endpoint.ip.addr = inet_addr("10.3.84.100");
+	struct ip_addr ip;
+	ip.addr = inet_addr("10.3.84.100");
 	for(;;)
 	{
 		//digitalWrite(GPIO_PD11, HIGH);
@@ -419,17 +335,16 @@ void XMLRPCServer::UDPSend(void* params)
 					const UDPConnection* connection = connections[i];
 					if (connection && connection->isValid())
 					{
-						endpoint.port = connection->getPort();
-						endpoint.connectionID = connection->getID();
-						err_t err = netconn_connect(conn, &endpoint.ip, endpoint.port);
+						err_t err = netconn_connect(conn, &ip, connection->getPort());
 						//os_printf("1Port: %d LWIP Error:%d\n", endpoint.port, err);
 
-						//os_printf("Connecting %s:%d, err:%d\n",endpoint.ip, endpoint.port, err);
+						os_printf("Connecting id:%d, port:%d, err:%d\n", connection->getID(), connection->getPort(), err);
 						struct netbuf *buf = netbuf_new();
 						char msgHeader[8];
-						memcpy(&msgHeader[0], &endpoint.connectionID, sizeof(uint32_t));
+						uint32_t connectionID = connection->getID();
+						memcpy(&msgHeader[0], &connectionID, sizeof(uint32_t));
 						msgHeader[4] = 0;
-						msgHeader[5] = counter++;
+						msgHeader[5] = counter++; // TODO: Should counter be stored in UDPConnection?
 						msgHeader[6] = 0x01;
 						msgHeader[7] = 0;
 						uint32_t msgLen = *((uint32_t*) msg.data)+4;
@@ -581,7 +496,7 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 					char topic[pos4-pos3-len+1];
 					strncpy (topic, pos3+len, pos4-pos3-len);
 					topic[pos4-pos3-len] = 0;
-					os_printf("_pos:%d, _pos2:%d, %s\n", pos3, pos4, topic);
+					//os_printf("_pos:%d, _pos2:%d, %s\n", pos3, pos4, topic);
 
 					// TODO: Move UDPConnection to registerPublishers. Then extract topic name from data. Afterwards, find the corresponding connection.
 					TopicWriter* tw = getTopicWriter(topic);
@@ -642,7 +557,7 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 							TopicReader* tr = getTopicReader(topic);
 							if (tr != NULL)
 							{
-								if (!strcmp(ip, "SI-Z0M81"))
+								if (!strcmp(ip, "SI-Z0M81")) // TODO: Replace this constant with a look-up table where all known computer names are listed.
 									strcpy(ip, "10.3.84.100");
 
 								tr->requestTopic(ip, port);
@@ -657,10 +572,6 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
 			os_printf("pos is NULL\n");
 
 	}
-	else if (!strcmp(methodName, "unregisterSubscriber"))
-	{
-		os_printf("UNREGISTER_SUBSCRIBER!\n");
-	}
 }
 
 
@@ -670,7 +581,7 @@ void XMLRPCServer::start()
 	xTaskCreate(UDPSend, (const signed char*)"UDPSend", 512, NULL, tskIDLE_PRIORITY + 2, NULL);
 	isUDPReceiveTaskCreated = false;
 
-	xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 256, NULL, tskIDLE_PRIORITY + 3, NULL);
+	xTaskCreate(UDPreceive, (const signed char*)"UDPReceive", 512, NULL, tskIDLE_PRIORITY + 3, NULL);
 
 }
 
@@ -697,7 +608,7 @@ void XMLRPCServer::UDPreceive(void* params)
 	err_t err;
 
 	// Initialize memory (in stack) for message.
-	char message[60];
+	char message[sizeof(UDPMessage)];
 	os_printf("Test!\n");
 	conn = netconn_new(NETCONN_UDP);
 	for(;;)
@@ -742,7 +653,6 @@ void XMLRPCServer::UDPreceive(void* params)
 						// Deallocate previously created memory.
 						netbuf_delete(buf);
 					}
-					// Use delay until to guarantee periodic execution of each loop iteration.
 					else
 					{
 						os_printf("buf = NULL!\n");

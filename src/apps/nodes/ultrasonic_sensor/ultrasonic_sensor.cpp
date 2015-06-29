@@ -28,6 +28,7 @@ void ultrasonicLoop()
         msg.range = distance_m;
         ultrasonic_pub->publish(msg);
     }
+    LOG("Publish");
 }
 
 void ultrasonic_sensor(void* params)
