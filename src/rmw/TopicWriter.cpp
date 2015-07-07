@@ -22,8 +22,13 @@ void TopicWriter::serializeMsg(const ros::Msg& msg, unsigned char* outbuffer)
 {
 	unsigned char stream1[sizeof(UDPMessage)];
 	uint32_t offset = msg.serialize(stream1);
-	memcpy(outbuffer, &offset, sizeof(uint32_t));
-	memcpy(outbuffer+sizeof(uint32_t), stream1, offset);
+    if (outbuffer != NULL)
+    {
+        memcpy(outbuffer, &offset, sizeof(uint32_t));
+        memcpy(outbuffer+sizeof(uint32_t), stream1, offset);
+    }
+    else
+        os_printf("TopicWriter::serializeMsg msg is NULL!\n");
 }
 
 void TopicWriter::publishMsg(const ros::Msg& msg)

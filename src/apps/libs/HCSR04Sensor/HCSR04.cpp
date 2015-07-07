@@ -13,7 +13,6 @@
 #define HCSR04_NUMBER ((float)0.0171821)
 #define MAX_ULTRASOUND_DURATION_US   HCSR04_MAX_RANGE / HCSR04_NUMBER
 #define MAX_ULTRASOUND_DURATION_MS (uint32_t)(MAX_ULTRASOUND_DURATION_US / 1000.0f)
-#define NO_ECHO -1
 
 volatile uint32_t ultrasound_duration = 0;
 uint32_t lastMicros = 0;

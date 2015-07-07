@@ -14,7 +14,7 @@ typedef struct node_descriptor {
 
 node_decriptor nodes[] = {
 		{"ultrasonic_sensor", ultrasonic_sensor},
-		//{"imu_sensor", imu_sensor},
+                {"imu_sensor", imu_sensor},
 		{"logger", logger},
 		{"listener", listener}
 };

@@ -23,7 +23,7 @@ void ultrasonicLoop()
     // Get distance value acquired by ultrasonic sensor in meters.
     float distance_m = HCSR04::pingMedian(5)/100.0f;
 
-    if (distance_m > -1)
+    if (distance_m > NO_ECHO)
     {
         msg.range = distance_m;
         ultrasonic_pub->publish(msg);
