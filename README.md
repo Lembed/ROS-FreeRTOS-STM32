@@ -18,7 +18,7 @@ With this software, ROS developers do not have to know the complexities of the r
 
 The software concept is shown in the below image. Blue blocks represent FreeRTOS tasks.
 
-![](https://github.com/bosch-ros-pkg/stm32/blob/refactored/doc/ROS.png)
+![](https://github.com/bosch-ros-pkg/stm32/blob/master/doc/ROS.png)
 
 Node functions are specified in the header file (node table) nodes.h, where developers need to type in the entry point of each ROS node on embedded system manually. Data transfer between PC and embedded system is realized using <a href="http://wiki.ros.org/ROS/UDPROS">UDPROS</a> over Ethernet. There is a very simple XMLRPC handling, which does not use any XML parser, to make negotiations with ROS master on a PC. ROS messages are serialized on embedded software using C++ headers generated with <a href="http://wiki.ros.org/rosserial">rosserial</a>'s message generator based on Python.
 
