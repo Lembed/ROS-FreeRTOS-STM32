@@ -100,6 +100,10 @@ typedef struct tskTaskControlBlock
 	
 	xListItem				xGenericListItem;	/*< List item used to place the TCB in ready and blocked queues. */
 	xListItem				xEventListItem;		/*< List item used to place the TCB in event lists. */
+#ifdef DEADLINE_SCHEDULING
+    unsigned portBASE_TYPE	uxDeadline;			/*< The absolute deadline of the task where portMAX_DELAY is the highest possible deadline. */
+    unsigned portBASE_TYPE	uxRelativeDeadline;
+#endif
 	unsigned portBASE_TYPE	uxPriority;			/*< The priority of the task where 0 is the lowest priority. */
 	portSTACK_TYPE			*pxStack;			/*< Points to the start of the stack. */
 	signed char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */
@@ -217,13 +221,112 @@ PRIVILEGED_DATA static portTickType xNextTaskUnblockTime						= ( portTickType )
  * executing task, then it will only be rescheduled after the currently
  * executing task has been rescheduled.
  */
+#ifdef DEADLINE_SCHEDULING
+    void vDeadlineListInsert( xList *pxList, xListItem *pxNewListItem )
+    {
+    volatile xListItem *pxIterator;
+    portTickType xValueOfInsertion;
+
+        /* Insert the new list item into the list, sorted in ulListItem order. */
+        if (pxNewListItem->pvOwner != NULL)
+            xValueOfInsertion = ((tskTCB*)pxNewListItem->pvOwner)->uxDeadline;
+        else
+            xValueOfInsertion = portMAX_DELAY;
+
+        /* If the list already contains a list item with the same item value then
+        the new list item should be placed after it.  This ensures that TCB's which
+        are stored in ready lists (all of which have the same ulListItem value)
+        get an equal share of the CPU.  However, if the xItemValue is the same as
+        the back marker the iteration loop below will not end.  This means we need
+        to guard against this by checking the value first and modifying the
+        algorithm slightly if necessary. */
+        if( xValueOfInsertion == portMAX_DELAY )
+        {
+            pxIterator = pxList->xListEnd.pxPrevious;
+        }
+        else
+        {
+            /* *** NOTE ***********************************************************
+            If you find your application is crashing here then likely causes are:
+                1) Stack overflow -
+                   see http://www.freertos.org/Stacks-and-stack-overflow-checking.html
+                2) Incorrect interrupt priority assignment, especially on Cortex-M3
+                   parts where numerically high priority values denote low actual
+                   interrupt priories, which can seem counter intuitive.  See
+                   configMAX_SYSCALL_INTERRUPT_PRIORITY on http://www.freertos.org/a00110.html
+                3) Calling an API function from within a critical section or when
+                   the scheduler is suspended.
+                4) Using a queue or semaphore before it has been initialised or
+                   before the scheduler has been started (are interrupts firing
+                   before vTaskStartScheduler() has been called?).
+            See http://www.freertos.org/FAQHelp.html for more tips.
+            **********************************************************************/
+            unsigned int counter = 0;
+            for( pxIterator = ( xListItem * ) &( pxList->xListEnd );
+                 pxIterator->pxNext->pvOwner != NULL &&
+                 counter < pxList->uxNumberOfItems + 1 &&
+                 ((tskTCB*)(pxIterator->pxNext->pvOwner))->uxDeadline <= xValueOfInsertion;
+                 pxIterator = pxIterator->pxNext )
+            {
+                /* There is nothing to do here, we are just iterating to the
+                wanted insertion position. */
+                //tskTCB* t = (tskTCB*)(pxIterator->pvOwner);
+                //logMessage(t->pcTaskName);
+                counter++;
+            }
+        }
+
+        pxNewListItem->pxNext = pxIterator->pxNext;
+        pxNewListItem->pxNext->pxPrevious = ( volatile xListItem * ) pxNewListItem;
+        pxNewListItem->pxPrevious = pxIterator;
+        pxIterator->pxNext = ( volatile xListItem * ) pxNewListItem;
+
+        /* Remember which list the item is in.  This allows fast removal of the
+        item later. */
+        pxNewListItem->pvContainer = ( void * ) pxList;
+
+        ( pxList->uxNumberOfItems )++;
+    }
+
+
 #define prvAddTaskToReadyQueue( pxTCB )																					\
-	traceMOVED_TASK_TO_READY_STATE( pxTCB )																				\
-	if( ( pxTCB )->uxPriority > uxTopReadyPriority )																	\
-	{																													\
-		uxTopReadyPriority = ( pxTCB )->uxPriority;																		\
-	}																													\
-	vListInsertEnd( ( xList * ) &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xGenericListItem ) )
+    traceMOVED_TASK_TO_READY_STATE( pxTCB )																				\
+    if( ( pxTCB )->uxPriority > uxTopReadyPriority )																	\
+    {																													\
+        uxTopReadyPriority = ( pxTCB )->uxPriority;																		\
+    } \
+    if (( pxTCB )->uxPriority == DEADLINE_PRIORITY)                                                                     \
+    /* TODO: make sure that list is sorted by absolute deadlines (ascending or descending?) */ \
+    {                                                     \
+        vDeadlineListInsert( ( xList * ) &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xGenericListItem ) );   \
+    } \
+    else \
+        vListInsertEnd( ( xList * ) &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xGenericListItem ) ); \
+    if (!strcmp(pxTCB->pcTaskName, "imu_sensor")) { \
+        digitalWrite(GPIO_PD1, HIGH); \
+        digitalWrite(GPIO_PD1, LOW); \
+    } \
+    else if (!strcmp(pxTCB->pcTaskName, "new_task")) { \
+        digitalWrite(GPIO_PD3, HIGH); \
+        digitalWrite(GPIO_PD3, LOW); \
+    }
+#else
+#define prvAddTaskToReadyQueue( pxTCB )																					\
+    traceMOVED_TASK_TO_READY_STATE( pxTCB )																				\
+    if( ( pxTCB )->uxPriority > uxTopReadyPriority )																	\
+    {																													\
+        uxTopReadyPriority = ( pxTCB )->uxPriority;																		\
+    } \
+    vListInsertEnd( ( xList * ) &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xGenericListItem ) ); \
+    if (!strcmp(pxTCB->pcTaskName, "imu_sensor")) { \
+        digitalWrite(GPIO_PD1, HIGH); \
+        digitalWrite(GPIO_PD1, LOW); \
+    } \
+    else if (!strcmp(pxTCB->pcTaskName, "new_task")) { \
+        digitalWrite(GPIO_PD3, HIGH); \
+        digitalWrite(GPIO_PD3, LOW); \
+    }
+#endif
 /*-----------------------------------------------------------*/
 
 /*
@@ -393,6 +496,7 @@ static tskTCB *prvAllocateTCBAndStack( unsigned short usStackDepth, portSTACK_TY
  * TASK CREATION API documented in task.h
  *----------------------------------------------------------*/
 
+
 signed portBASE_TYPE xTaskGenericCreate( pdTASK_CODE pxTaskCode, const signed char * const pcName, unsigned short usStackDepth, void *pvParameters, unsigned portBASE_TYPE uxPriority, xTaskHandle *pxCreatedTask, portSTACK_TYPE *puxStackBuffer, const xMemoryRegion * const xRegions )
 {
 signed portBASE_TYPE xReturn;
@@ -530,6 +634,8 @@ tskTCB * pxNewTCB;
 			xReturn = pdPASS;
 			portSETUP_TCB( pxNewTCB );
 			traceTASK_CREATE( pxNewTCB );
+
+
 		}
 		taskEXIT_CRITICAL();
 	}
@@ -555,6 +661,180 @@ tskTCB * pxNewTCB;
 	return xReturn;
 }
 /*-----------------------------------------------------------*/
+
+
+// Deadline Task create
+#ifdef DEADLINE_SCHEDULING
+signed portBASE_TYPE xDeadlineTaskGenericCreate( pdTASK_CODE pxTaskCode, const signed char * const pcName, unsigned short usStackDepth, void *pvParameters, unsigned portBASE_TYPE uxRelativeDeadline, xTaskHandle *pxCreatedTask, portSTACK_TYPE *puxStackBuffer, const xMemoryRegion * const xRegions )
+{
+signed portBASE_TYPE xReturn;
+tskTCB * pxNewTCB;
+
+    configASSERT( pxTaskCode );
+    unsigned portBASE_TYPE uxPriority = DEADLINE_PRIORITY;
+
+    /* Allocate the memory required by the TCB and stack for the new task,
+    checking that the allocation was successful. */
+    pxNewTCB = prvAllocateTCBAndStack( usStackDepth, puxStackBuffer );
+
+    if( pxNewTCB != NULL )
+    {
+        portSTACK_TYPE *pxTopOfStack;
+
+        #if( portUSING_MPU_WRAPPERS == 1 )
+            /* Should the task be created in privileged mode? */
+            portBASE_TYPE xRunPrivileged;
+            if( ( uxPriority & portPRIVILEGE_BIT ) != 0U )
+            {
+                xRunPrivileged = pdTRUE;
+            }
+            else
+            {
+                xRunPrivileged = pdFALSE;
+            }
+            uxPriority &= ~portPRIVILEGE_BIT;
+        #endif /* portUSING_MPU_WRAPPERS == 1 */
+
+        /* Calculate the top of stack address.  This depends on whether the
+        stack grows from high memory to low (as per the 80x86) or visa versa.
+        portSTACK_GROWTH is used to make the result positive or negative as
+        required by the port. */
+        #if( portSTACK_GROWTH < 0 )
+        {
+            pxTopOfStack = pxNewTCB->pxStack + ( usStackDepth - ( unsigned short ) 1 );
+            pxTopOfStack = ( portSTACK_TYPE * ) ( ( ( portPOINTER_SIZE_TYPE ) pxTopOfStack ) & ( ( portPOINTER_SIZE_TYPE ) ~portBYTE_ALIGNMENT_MASK  ) );
+
+            /* Check the alignment of the calculated top of stack is correct. */
+            configASSERT( ( ( ( unsigned long ) pxTopOfStack & ( unsigned long ) portBYTE_ALIGNMENT_MASK ) == 0UL ) );
+        }
+        #else
+        {
+            pxTopOfStack = pxNewTCB->pxStack;
+
+            /* Check the alignment of the stack buffer is correct. */
+            configASSERT( ( ( ( unsigned long ) pxNewTCB->pxStack & ( unsigned long ) portBYTE_ALIGNMENT_MASK ) == 0UL ) );
+
+            /* If we want to use stack checking on architectures that use
+            a positive stack growth direction then we also need to store the
+            other extreme of the stack space. */
+            pxNewTCB->pxEndOfStack = pxNewTCB->pxStack + ( usStackDepth - 1 );
+        }
+        #endif
+
+        /* Setup the newly allocated TCB with the initial state of the task. */
+        prvInitialiseTCBVariables( pxNewTCB, pcName, uxPriority, xRegions, usStackDepth );
+
+        /* Initialize the TCB stack to look as if the task was already running,
+        but had been interrupted by the scheduler.  The return address is set
+        to the start of the task function. Once the stack has been initialised
+        the	top of stack variable is updated. */
+        #if( portUSING_MPU_WRAPPERS == 1 )
+        {
+            pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters, xRunPrivileged );
+        }
+        #else
+        {
+            pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters );
+        }
+        #endif
+
+        /* Check the alignment of the initialised stack. */
+        portALIGNMENT_ASSERT_pxCurrentTCB( ( ( ( unsigned long ) pxNewTCB->pxTopOfStack & ( unsigned long ) portBYTE_ALIGNMENT_MASK ) == 0UL ) );
+
+        if( ( void * ) pxCreatedTask != NULL )
+        {
+            /* Pass the TCB out - in an anonymous way.  The calling function/
+            task can use this as a handle to delete the task later if
+            required.*/
+            *pxCreatedTask = ( xTaskHandle ) pxNewTCB;
+        }
+
+        /* We are going to manipulate the task queues to add this task to a
+        ready list, so must make sure no interrupts occur. */
+        taskENTER_CRITICAL();
+        {
+            uxCurrentNumberOfTasks++;
+            if( pxCurrentTCB == NULL )
+            {
+                /* There are no other tasks, or all the other tasks are in
+                the suspended state - make this the current task. */
+                pxCurrentTCB =  pxNewTCB;
+
+                if( uxCurrentNumberOfTasks == ( unsigned portBASE_TYPE ) 1 )
+                {
+                    /* This is the first task to be created so do the preliminary
+                    initialisation required.  We will not recover if this call
+                    fails, but we will report the failure. */
+                    prvInitialiseTaskLists();
+                }
+            }
+            else
+            {
+                /* If the scheduler is not already running, make this task the
+                current task if it is the highest priority task to be created
+                so far. */
+                if( xSchedulerRunning == pdFALSE )
+                {
+                    if( pxCurrentTCB->uxPriority <= uxPriority )
+                    {
+                        pxCurrentTCB = pxNewTCB;
+                    }
+                }
+            }
+
+            /* Remember the top priority to make context switching faster.  Use
+            the priority in pxNewTCB as this has been capped to a valid value. */
+            if( pxNewTCB->uxPriority > uxTopUsedPriority )
+            {
+                uxTopUsedPriority = pxNewTCB->uxPriority;
+            }
+
+            #if ( configUSE_TRACE_FACILITY == 1 )
+            {
+                /* Add a counter into the TCB for tracing only. */
+                pxNewTCB->uxTCBNumber = uxTaskNumber;
+            }
+            #endif
+            uxTaskNumber++;
+
+            // Set absolute and relative deadlines
+            pxNewTCB->uxRelativeDeadline = uxRelativeDeadline;
+            pxNewTCB->uxDeadline = xTickCount + uxRelativeDeadline;
+
+            prvAddTaskToReadyQueue( pxNewTCB );
+
+            xReturn = pdPASS;
+            portSETUP_TCB( pxNewTCB );
+            traceTASK_CREATE( pxNewTCB );
+
+
+        }
+        taskEXIT_CRITICAL();
+    }
+    else
+    {
+        xReturn = errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY;
+        traceTASK_CREATE_FAILED();
+    }
+
+    if( xReturn == pdPASS )
+    {
+        if( xSchedulerRunning != pdFALSE )
+        {
+            /* If the created task is of a higher priority than the current task
+            then it should run now. */
+            if( pxCurrentTCB->uxPriority < uxPriority )
+            {
+                portYIELD_WITHIN_API();
+            }
+        }
+    }
+
+    return xReturn;
+}
+#endif
+/*-----------------------------------------------------------*/
+
 
 #if ( INCLUDE_vTaskDelete == 1 )
 
@@ -666,6 +946,13 @@ tskTCB * pxNewTCB;
 			if( xShouldDelay != pdFALSE )
 			{
 				traceTASK_DELAY_UNTIL();
+#ifdef DEADLINE_SCHEDULING
+                if (pxCurrentTCB->uxPriority == DEADLINE_PRIORITY)
+                {
+                    pxCurrentTCB->uxDeadline = xTimeToWake + pxCurrentTCB->uxRelativeDeadline;
+                    //logMessage("%s:Millis: %d, deadline:%d\n", pxCurrentTCB->pcTaskName, xTickCount, pxCurrentTCB->uxDeadline);
+                }
+#endif
 
 				/* We must remove ourselves from the ready list before adding
 				ourselves to the blocked list as the same list item is used for
@@ -753,6 +1040,12 @@ tskTCB * pxNewTCB;
 	}
 
 #endif
+
+#ifdef DEADLINE_SCHEDULING
+#include "wiring.h"
+#endif
+
+
 /*-----------------------------------------------------------*/
 
 #if ( INCLUDE_vTaskPrioritySet == 1 )
@@ -1592,7 +1885,6 @@ tskTCB * pxTCB;
 
 #endif
 /*-----------------------------------------------------------*/
-
 void vTaskSwitchContext( void )
 {
 	if( uxSchedulerSuspended != ( unsigned portBASE_TYPE ) pdFALSE )
@@ -1604,6 +1896,14 @@ void vTaskSwitchContext( void )
 	else
 	{
 		traceTASK_SWITCHED_OUT();
+        if (!strcmp(pxCurrentTCB->pcTaskName, "imu_sensor"))
+            digitalWrite(GPIO_PD2, LOW);
+        else if (!strcmp(pxCurrentTCB->pcTaskName, "new_task"))
+            digitalWrite(GPIO_PD4, LOW);
+
+        //static int state = 0;
+        //digitalWrite(GPIO_PD1, state);
+        //state = (state == 0 ? 1 : 0);
 	
 		#if ( configGENERATE_RUN_TIME_STATS == 1 )
 		{
@@ -1627,19 +1927,33 @@ void vTaskSwitchContext( void )
 	
 		taskFIRST_CHECK_FOR_STACK_OVERFLOW();
 		taskSECOND_CHECK_FOR_STACK_OVERFLOW();
+        #ifdef DEADLINE_SCHEDULING
+        /* Hierarchical scheduling: First handle deadline tasks, if no deadline task in the ready queue, then handle lower priority tasks. */
+        if(!listLIST_IS_EMPTY( &( pxReadyTasksLists[ DEADLINE_PRIORITY] ) ) )
+        {
+            // Set pxCurrentTCB as the first entry in the list, which is has the smallest absolute deadline.
+            pxCurrentTCB = listGET_OWNER_OF_HEAD_ENTRY(&( pxReadyTasksLists[DEADLINE_PRIORITY] ) );
+        }
+        else
+        #endif
+        { 
+            /* Find the highest priority queue that contains ready tasks. */
+            while( listLIST_IS_EMPTY( &( pxReadyTasksLists[ uxTopReadyPriority ] ) ) )
+            {
+                configASSERT( uxTopReadyPriority );
+                --uxTopReadyPriority;
+            }
+
+            /* listGET_OWNER_OF_NEXT_ENTRY walks through the list, so the tasks of the
+            same priority get an equal share of the processor time. */
+            listGET_OWNER_OF_NEXT_ENTRY( pxCurrentTCB, &( pxReadyTasksLists[ uxTopReadyPriority ] ) );
+        }
 	
-		/* Find the highest priority queue that contains ready tasks. */
-		while( listLIST_IS_EMPTY( &( pxReadyTasksLists[ uxTopReadyPriority ] ) ) )
-		{
-			configASSERT( uxTopReadyPriority );
-			--uxTopReadyPriority;
-		}
-	
-		/* listGET_OWNER_OF_NEXT_ENTRY walks through the list, so the tasks of the
-		same priority get an equal share of the processor time. */
-		listGET_OWNER_OF_NEXT_ENTRY( pxCurrentTCB, &( pxReadyTasksLists[ uxTopReadyPriority ] ) );
-	
-		traceTASK_SWITCHED_IN();
+        traceTASK_SWITCHED_IN();
+        if (!strcmp(pxCurrentTCB->pcTaskName, "imu_sensor"))
+            digitalWrite(GPIO_PD2, HIGH);
+        else if (!strcmp(pxCurrentTCB->pcTaskName, "new_task"))
+            digitalWrite(GPIO_PD4, HIGH);
 	}
 }
 /*-----------------------------------------------------------*/

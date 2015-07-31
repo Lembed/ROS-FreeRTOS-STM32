@@ -87,9 +87,11 @@
 conform. */
 typedef portBASE_TYPE (*pdTASK_HOOK_CODE)( void * );
 
+#define DEADLINE_SCHEDULING
 
-
-
+#ifdef DEADLINE_SCHEDULING
+#define DEADLINE_PRIORITY configMAX_PRIORITIES - 1
+#endif
 
 /*
  * Check all the required application specific macros have been defined.
@@ -280,7 +282,8 @@ typedef portBASE_TYPE (*pdTASK_HOOK_CODE)( void * );
 #ifndef traceTASK_SWITCHED_IN
 	/* Called after a task has been selected to run.  pxCurrentTCB holds a pointer
 	to the task control block of the selected task. */
-	#define traceTASK_SWITCHED_IN()
+#include "wiring.h"
+#define traceTASK_SWITCHED_IN()
 #endif
 
 #ifndef traceTASK_SWITCHED_OUT

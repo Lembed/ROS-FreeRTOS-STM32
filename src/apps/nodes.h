@@ -10,13 +10,14 @@
 typedef struct node_descriptor {
 	char name[32];
 	void (*function)(void* params);
+    unsigned long deadline;
 
 } node_decriptor;
 
 node_decriptor nodes[] = {
-        {"ultrasonic_sensor", ultrasonic_sensor},
-        {"imu_sensor", imu_sensor},
-        {"new_task", new_task},
+        {"ultrasonic_sensor", ultrasonic_sensor, 50},
+        {"imu_sensor", imu_sensor, 100},
+        {"new_task", new_task, 10},
         //{"logger", logger},
         //{"listener", listener}
 };

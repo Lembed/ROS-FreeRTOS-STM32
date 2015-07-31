@@ -59,7 +59,7 @@
 
 #define netifMTU                                (1500)
 #define netifINTERFACE_TASK_STACK_SIZE		( 350 )
-#define netifINTERFACE_TASK_PRIORITY		( configMAX_PRIORITIES - 1 )
+#define netifINTERFACE_TASK_PRIORITY		( configMAX_PRIORITIES - 2 )
 #define netifGUARD_BLOCK_TIME			( 250 )
 /* The time to block waiting for input. */
 #define emacBLOCK_TIME_WAITING_FOR_INPUT	( ( portTickType ) 100 )
