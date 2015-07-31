@@ -1,6 +1,13 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifndef WIRING_MODE
+#define WIRING_MODE
 typedef enum mode { OUTPUT, INPUT, TRIGGER_RISING, TRIGGER_FALLING, TRIGGER_RISING_FALLING} Mode;
-#define HIGH true
-#define LOW false
+#endif
+
+#define HIGH 1
+#define LOW 0
 
 #include "stdint.h"
 #include "stm32f4xx.h"
@@ -143,9 +150,13 @@ typedef enum mode { OUTPUT, INPUT, TRIGGER_RISING, TRIGGER_FALLING, TRIGGER_RISI
 
 
 
-void digitalWrite(uint16_t pin, bool value);
-bool digitalRead(uint16_t pin);
+void digitalWrite(uint16_t pin, int value);
+int digitalRead(uint16_t pin);
 void pinMode(uint16_t pin, Mode mode);
 void delayMicroseconds(uint32_t us);
 void enableTiming();
 uint32_t micros();
+
+#ifdef __cplusplus
+}
+#endif
