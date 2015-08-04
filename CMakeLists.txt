@@ -71,7 +71,10 @@ set(BIN_FILE "FreeRTOS.bin")
 # get all *.cpp files recursively
 file(GLOB_RECURSE CXX_FILES ${PROJECT_SRC}/*.cpp)
 file(GLOB_RECURSE C_FILES ${PROJECT_SRC}/*.c)
-add_executable(${ELF_FILE} ${CXX_FILES} ${C_FILES})
+# Adding header files is not required for build, it is only required for some IDEs to include headers in project navigator.
+file(GLOB_RECURSE H_FILES ${PROJECT_SRC}/*.h)
+add_executable(${ELF_FILE} ${CXX_FILES} ${C_FILES} ${H_FILES})
+
 
 
 #add_custom_target(${HEX_FILE} DEPENDS ${ELF_FILE} COMMAND ${CMAKE_OBJCOPY} -Oihex ${ELF_FILE} ${HEX_FILE})
