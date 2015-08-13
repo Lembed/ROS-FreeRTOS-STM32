@@ -22,7 +22,7 @@ TopicReader::TopicReader(const char* callerID, const char* topic, const char* md
 	XMLRequest* req = new RegisterRequest("registerSubscriber", MASTER_URI, callerID, topic, msgType);
 	XMLRPCServer::sendRequest(req->getData(), 11311, connectPublishers, this);
 	// TODO: make a unique task name
-	xTaskCreate(task, (const signed char*)topic, 150, (void*)this, tskIDLE_PRIORITY + 2, NULL);
+    xTaskCreate(task, (const signed char*)topic, 250, (void*)this, tskIDLE_PRIORITY + 2, NULL);
 }
 
 void TopicReader::addCallback(void(*callback)(void* data, void* obj), void* obj)
@@ -69,16 +69,23 @@ void TopicReader::enqueueMessage(const char* msg)
 	// Initialize memory (in stack) for message.
 	unsigned char data[RX_QUEUE_MSG_SIZE];
 	// Copy message into the previously initialized memory.
-	memcpy(data, msg, RX_QUEUE_MSG_SIZE);
-	// Try to send message if queue is non-full.
-	// TODO: Check if we are still "connected" to the end point. (i.e. the node at the remote end is still running)
-	if (xQueueSend(qHandle, &data, 0))
-	{
+    if (msg != NULL)
+    {
+        memcpy(data, msg, RX_QUEUE_MSG_SIZE);
+        // Try to send message if queue is non-full.
+        // TODO: Check if we are still "connected" to the end point. (i.e. the node at the remote end is still running)
+        if (xQueueSend(qHandle, &data, 0))
+        {
 
-	}
-	/*	os_printf("Enqueueing data!\n");*/
-	else
-		os_printf("Queue is full!\n");
+        }
+        /*	os_printf("Enqueueing data!\n");*/
+        else
+            os_printf("Queue is full!\n");
+    }
+    else
+    {
+        os_printf("TopicReader::enqueueMessage msg is NULL\n");
+    }
 }
 void TopicReader::dequeueMessage(char* msg)
 {
@@ -90,7 +97,10 @@ void TopicReader::dequeueMessage(char* msg)
 	{
 		if (xQueueReceive(qHandle, data, RXTIMEOUT))
 		{
-			memcpy(msg, data, RX_QUEUE_MSG_SIZE);
+            if (msg != NULL)
+                memcpy(msg, data, RX_QUEUE_MSG_SIZE);
+            else
+                os_printf("TopicReader::dequeueMessage msg is NULL!\n");
 			break;
 		}
 	}
