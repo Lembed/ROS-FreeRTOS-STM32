@@ -2,7 +2,7 @@
 #define APPS_LIBS_HCSR04SENSOR_HCSR04_H_
 
 #include "stdint.h"
-
+#define NO_ECHO -1
 class HCSR04
 {
 public:

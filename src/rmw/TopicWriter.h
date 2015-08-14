@@ -18,7 +18,7 @@ typedef struct UDPMessage
 
 #define MAX_UDP_CONNECTIONS 20
 
-
+extern "C" void os_printf(const char* fmt, ...);
 
 
 class UDPConnection
@@ -57,16 +57,21 @@ public:
 		// Initialize memory (in stack) for message.
 		unsigned char data[QUEUE_MSG_SIZE];
 		// Copy message into the previously initialized memory.
-		memcpy(data, msg, QUEUE_MSG_SIZE);
-		// Try to send message if queue is non-full.
-		// TODO: Check if we are still "connected" to the end point. (i.e. the node at the remote end is still running)
-		if (xQueueSend(qHandle, &data, 0))
-		{
+        if (msg != NULL)
+        {
+            memcpy(data, msg, QUEUE_MSG_SIZE);
+            // Try to send message if queue is non-full.
+            // TODO: Check if we are still "connected" to the end point. (i.e. the node at the remote end is still running)
+            if (xQueueSend(qHandle, &data, 0))
+            {
 
-		}
-		/*	os_printf("Enqueueing data!\n");
-		else
-			os_printf("Queue is full!\n");*/
+            }
+            /*	os_printf("Enqueueing data!\n");
+            else
+                os_printf("Queue is full!\n");*/
+        }
+        else
+            os_printf("UDPHandler::enqueueMessage msg is NULL!\n");
 	}
 	void dequeueMessage(UDPMessage* msg)
 	{
@@ -78,7 +83,10 @@ public:
 		{
 			if (xQueueReceive(qHandle, data, RXTIMEOUT))
 			{
-				memcpy(msg, data, QUEUE_MSG_SIZE);
+                if (msg != NULL)
+                    memcpy(msg, data, QUEUE_MSG_SIZE);
+                else
+                    os_printf("UDPHandler::dequeueMessage msg is NULL!\n");
 				break;
 			}
 		}
