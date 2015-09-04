@@ -5,6 +5,7 @@
 #include "lwip/ip_addr.h"
 #include "tcpip.h"
 #include "api.h"
+#include "device_config.h"
 
 extern "C"
 {
@@ -13,10 +14,6 @@ extern "C"
 
 #include "XMLRequest.h"
 
-#define SENDER_IP_ADDR "10.3.84.99"
-
-#define SERVER_PORT_NUM 11311
-#define SERVER_IP_ADDRESS "10.3.84.100"
 
 #define TOPIC_COUNT 20
 #define MAX_TOPIC_LEN 48
@@ -145,7 +142,7 @@ public:
         }
         else
             os_printf("HTTPClient::sendData data is NULL!\n");
-        tcpData.serverIP = inet_addr("10.3.84.100");
+        tcpData.serverIP = inet_addr(ROS_MASTER_IP);
         tcpData.serverPort = port;
         tcpData.receiveCallback = receiveCallback;
         tcpData.obj = obj;
@@ -490,7 +487,7 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
                         if (connection!= NULL)
                         {
                             os_printf("Connection ID: %d\n", connection->getID());
-                            XMLRequest* response = new TopicResponse(SENDER_IP_ADDR, UDP_LOCAL_PORT, connection->getID());
+                            XMLRequest* response = new TopicResponse(THIS_REMOTE_IP, UDP_LOCAL_PORT, connection->getID());
                             strcpy(buffer, response->getData());
                         }
                     }
@@ -531,14 +528,14 @@ void XMLRPCServer::XMLRPCServerReceiveCallback(const char* data, char* buffer)
                         uint16_t port;
                         char ip[32];
                         extractURI(uri, ip, &port);
-                        if (strcmp(ip, SENDER_IP_ADDR))
+                        if (strcmp(ip, THIS_REMOTE_IP))
                         {
                             os_printf("Topic:%s URI: %s:::%s:::%d\n", topic, uri, ip, port);
                             TopicReader* tr = getTopicReader(topic);
                             if (tr != NULL)
                             {
                                 if (!strcmp(ip, "SI-Z0M81"))
-                                    strcpy(ip, "10.3.84.100");
+                                    strcpy(ip, ROS_MASTER_IP);
 
                                 tr->requestTopic(ip, port);
                             }

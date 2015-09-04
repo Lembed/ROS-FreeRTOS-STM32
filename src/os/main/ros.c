@@ -2,6 +2,7 @@
 #include "rcl.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include "device_config.h"
 
 // application memory
 char memory[20 * 1024];
@@ -47,9 +48,6 @@ void TerminalTask( void *pvParameters )
 #include "netconf.h"
 #include "tcpip.h"
 
-#define LOG_LOCAL_PORT 32005
-#define LOG_REMOTE_PORT 32006
-#define LOG_REMOTE_IP "10.3.84.100"
 
 void TerminalTask(void* params)
 {

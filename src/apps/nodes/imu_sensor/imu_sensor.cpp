@@ -1,3 +1,4 @@
+#include "device_config.h"
 #include "imu_sensor.h"
 #include "rcl.h"
 #include "Node.h"
@@ -35,7 +36,7 @@ void imuLoop()
 void imu_sensor(void* p)
 {
 	// Register node in the ROS system and create a publisher with imu topic.
-	Node* n = new Node("imu_sensor");
+	Node* n = new Node("imu_sensor_"ROS_NODE_UNIQUE_ID);
 	imu_pub = new Publisher;
 	imu_pub->advertise<Imu>(n, "imu");
 

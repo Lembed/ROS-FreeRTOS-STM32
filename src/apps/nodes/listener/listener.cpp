@@ -1,3 +1,4 @@
+#include "device_config.h"
 #include <nodes/listener/listener.h>
 #include "rcl.h"
 #include "Node.h"
@@ -22,7 +23,7 @@ void voidLoop()
 void listener(void* params)
 {
     // Register node in the ROS system
-    ros::Node* n = new ros::Node("listener"); // TODO: Unique ID may need to be added later in case multiple STM32s will be connected to the same bus.
+    ros::Node* n = new ros::Node("listener_"ROS_NODE_UNIQUE_ID); // TODO: Unique ID may need to be added later in case multiple STM32s will be connected to the same bus.
 
     // Subscribe to "chatter" topic.
     ros::Subscriber<String>* sub = new ros::Subscriber<String>(n, "chatter", chatterCallback);
