@@ -1,3 +1,4 @@
+#include "device_config.h"
 #include "speed_setter.h"
 #include "rcl.h"
 #include "Node.h"
@@ -85,7 +86,7 @@ void speed_setter(void* p)
     Node* n = new Node("speed_setter");
 
     // Subscribe to "chatter" topic.
-    ros::Subscriber<Range>* sub = new ros::Subscriber<Range>(n, "ultrasound", distanceCallback);
+    ros::Subscriber<Range>* sub = new ros::Subscriber<Range>(n, "ultrasound_"ROS_NODE_UNIQUE_ID, distanceCallback);
 
     float kp =0.15f, ki = 0.035f, kd =0.12f;
     pid = new PID(kp, ki, kd);
