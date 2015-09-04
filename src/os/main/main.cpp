@@ -72,7 +72,14 @@ extern "C" void MainTask(void* args)
     /* Initialize the LwIP stack */
 	LwIP_Init();
 
-	xTaskCreate(ros_main, (const signed char*)"ROSMain", 128, NULL, 2, NULL);
+    pinMode(GPIO_PD1, OUTPUT);
+    pinMode(GPIO_PD2, OUTPUT);
+    pinMode(GPIO_PD3, OUTPUT);
+    pinMode(GPIO_PD4, OUTPUT);
+    pinMode(GPIO_PD5, OUTPUT);
+    pinMode(GPIO_PD6, OUTPUT);
+
+    xTaskCreate(ros_main, (const signed char*)"ROSMain", 128, NULL, 2, NULL);
 	xTaskCreate(led_task, (const signed char*)"LedTask", 128, NULL, 2, NULL);
 
     vTaskDelete(NULL);

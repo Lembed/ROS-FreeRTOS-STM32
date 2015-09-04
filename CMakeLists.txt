@@ -9,7 +9,7 @@ set(CMAKE_SYSTEM_PROCESSOR arm-eabi)
 
 # Default toolchain path
 #set(TOOLCHAIN_PATH "/opt/CodeSourcery/arm-2011.09/bin/")
-set(TOOLCHAIN_PATH "../../stm32-tools/CodeSourcery/arm-2011.09/bin/")
+set(TOOLCHAIN_PATH "")
 
 # which compilers to use for C and C++
 set(CMAKE_C_COMPILER       ${TOOLCHAIN_PATH}arm-none-eabi-gcc)
@@ -75,12 +75,8 @@ file(GLOB_RECURSE C_FILES ${PROJECT_SRC}/*.c)
 file(GLOB_RECURSE H_FILES ${PROJECT_SRC}/*.h)
 add_executable(${ELF_FILE} ${CXX_FILES} ${C_FILES} ${H_FILES})
 
-
-
 #add_custom_target(${HEX_FILE} DEPENDS ${ELF_FILE} COMMAND ${CMAKE_OBJCOPY} -Oihex ${ELF_FILE} ${HEX_FILE})
 #add_custom_target(${BIN_FILE} DEPENDS ${ELF_FILE} COMMAND ${CMAKE_OBJCOPY} -Obinary ${ELF_FILE} ${BIN_FILE})
-
-
 
 ADD_CUSTOM_COMMAND(TARGET ${ELF_FILE}
           POST_BUILD

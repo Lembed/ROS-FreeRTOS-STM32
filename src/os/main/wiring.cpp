@@ -1,10 +1,7 @@
 #include "wiring.h"
 
-extern "C"
-{
 	#include "stm32f4xx.h"
 	#include "stm32f4xx_rcc.h"
-}
 
 #define STM32_TICKS_PER_US          168
 #define STM32_DELAY_US_MULT         (STM32_TICKS_PER_US/3)
@@ -28,7 +25,7 @@ void delayMicroseconds(uint32_t us) {
 }
 
 
-void digitalWrite(uint16_t pin, bool value)
+void digitalWrite(uint16_t pin, int value)
 {
 	GPIO_TypeDef* port = (GPIO_TypeDef*)(AHB1PERIPH_BASE + (0x0400 * ((pin >> 4) & 0xF)));
 	if (value == HIGH)
@@ -37,7 +34,7 @@ void digitalWrite(uint16_t pin, bool value)
 		port->BSRRH = 0x1 << (pin & 0xF);
 }
 
-bool digitalRead(uint16_t pin)
+int digitalRead(uint16_t pin)
 {
 	GPIO_TypeDef* port = (GPIO_TypeDef*)(AHB1PERIPH_BASE + (0x0400 * ((pin >> 4) & 0xF)));
 	return GPIO_ReadInputDataBit(port, 0x1 << (pin & 0xF));

@@ -26,21 +26,14 @@ void InitNodesTask(void* params)
 	unsigned int num_nodes = sizeof(nodes)/sizeof(node_decriptor);
 	for (unsigned int i=0; i< num_nodes; i++)
 	{
-		xTaskCreate(nodes[i].function, (const signed char*)nodes[i].name, configMINIMAL_STACK_SIZE*4, NULL, tskIDLE_PRIORITY + 4, NULL);
-	}
-
-
+#ifdef DEADLINE_SCHEDULING
+        xDeadlineTaskCreate(nodes[i].function, (const signed char*)nodes[i].name, configMINIMAL_STACK_SIZE*4, NULL, nodes[i].deadline, NULL);
+#else
+        xTaskCreate(nodes[i].function, (const signed char*)nodes[i].name, configMINIMAL_STACK_SIZE*4, NULL, tskIDLE_PRIORITY + 4UL , NULL);
+#endif
+    }
 
 	vTaskDelete(NULL);
-}
-
-void spinLoop(void (*callback)(void), unsigned int period)
-{
-	LOOP(period,
-	// start while
-	callback();
-	// end while
-	)
 }
 
 extern "C" void* os_malloc(unsigned int);

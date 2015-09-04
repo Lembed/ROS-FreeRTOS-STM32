@@ -283,6 +283,10 @@ typedef struct xTASK_PARAMTERS
  */
 #define xTaskCreate( pvTaskCode, pcName, usStackDepth, pvParameters, uxPriority, pxCreatedTask ) xTaskGenericCreate( ( pvTaskCode ), ( pcName ), ( usStackDepth ), ( pvParameters ), ( uxPriority ), ( pxCreatedTask ), ( NULL ), ( NULL ) )
 
+
+#define xDeadlineTaskCreate( pvTaskCode, pcName, usStackDepth, pvParameters, uxRelativeDeadline, pxCreatedTask ) xDeadlineTaskGenericCreate( ( pvTaskCode ), ( pcName ), ( usStackDepth ), ( pvParameters ), ( uxRelativeDeadline ), ( pxCreatedTask ), ( NULL ), ( NULL ) )
+signed portBASE_TYPE xDeadlineTaskGenericCreate( pdTASK_CODE pxTaskCode, const signed char * const pcName, unsigned short usStackDepth, void *pvParameters, unsigned portBASE_TYPE uxDeadline, xTaskHandle *pxCreatedTask, portSTACK_TYPE *puxStackBuffer, const xMemoryRegion * const xRegions );
+
 /**
  * task. h
  *<pre>
