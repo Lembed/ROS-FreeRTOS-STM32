@@ -302,13 +302,17 @@ PRIVILEGED_DATA static portTickType xNextTaskUnblockTime						= ( portTickType )
     } \
     else \
         vListInsertEnd( ( xList * ) &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xGenericListItem ) ); \
-    if (!strcmp(pxTCB->pcTaskName, "imu_sensor")) { \
+    if (!strcmp(pxTCB->pcTaskName, "speed_setter")) { \
         digitalWrite(GPIO_PD1, HIGH); \
         digitalWrite(GPIO_PD1, LOW); \
     } \
     else if (!strcmp(pxTCB->pcTaskName, "new_task")) { \
         digitalWrite(GPIO_PD3, HIGH); \
         digitalWrite(GPIO_PD3, LOW); \
+    } \
+    else if (!strcmp(pxTCB->pcTaskName, "imu_sensor")) { \
+        digitalWrite(GPIO_PD5, HIGH); \
+        digitalWrite(GPIO_PD5, LOW); \
     }
 #else
 #define prvAddTaskToReadyQueue( pxTCB )																					\
@@ -318,13 +322,17 @@ PRIVILEGED_DATA static portTickType xNextTaskUnblockTime						= ( portTickType )
         uxTopReadyPriority = ( pxTCB )->uxPriority;																		\
     } \
     vListInsertEnd( ( xList * ) &( pxReadyTasksLists[ ( pxTCB )->uxPriority ] ), &( ( pxTCB )->xGenericListItem ) ); \
-    if (!strcmp(pxTCB->pcTaskName, "imu_sensor")) { \
+    if (!strcmp(pxTCB->pcTaskName, "speed_setter")) { \
         digitalWrite(GPIO_PD1, HIGH); \
         digitalWrite(GPIO_PD1, LOW); \
     } \
     else if (!strcmp(pxTCB->pcTaskName, "new_task")) { \
         digitalWrite(GPIO_PD3, HIGH); \
         digitalWrite(GPIO_PD3, LOW); \
+    } \
+    else if (!strcmp(pxTCB->pcTaskName, "imu_sensor")) { \
+        digitalWrite(GPIO_PD5, HIGH); \
+        digitalWrite(GPIO_PD5, LOW); \
     }
 #endif
 /*-----------------------------------------------------------*/
@@ -1880,7 +1888,7 @@ tskTCB * pxTCB;
 			xReturn = pdFAIL;
 		}
 
-		return xReturn;
+        return xReturn;
 	}
 
 #endif
@@ -1896,10 +1904,12 @@ void vTaskSwitchContext( void )
 	else
 	{
 		traceTASK_SWITCHED_OUT();
-        if (!strcmp(pxCurrentTCB->pcTaskName, "imu_sensor"))
+        if (!strcmp(pxCurrentTCB->pcTaskName, "speed_setter"))
             digitalWrite(GPIO_PD2, LOW);
         else if (!strcmp(pxCurrentTCB->pcTaskName, "new_task"))
             digitalWrite(GPIO_PD4, LOW);
+        else if (!strcmp(pxCurrentTCB->pcTaskName, "imu_sensor"))
+            digitalWrite(GPIO_PD6, LOW);
 
         //static int state = 0;
         //digitalWrite(GPIO_PD1, state);
@@ -1950,10 +1960,12 @@ void vTaskSwitchContext( void )
         }
 	
         traceTASK_SWITCHED_IN();
-        if (!strcmp(pxCurrentTCB->pcTaskName, "imu_sensor"))
+        if (!strcmp(pxCurrentTCB->pcTaskName, "speed_setter"))
             digitalWrite(GPIO_PD2, HIGH);
         else if (!strcmp(pxCurrentTCB->pcTaskName, "new_task"))
             digitalWrite(GPIO_PD4, HIGH);
+        else if (!strcmp(pxCurrentTCB->pcTaskName, "imu_sensor"))
+            digitalWrite(GPIO_PD6, HIGH);
 	}
 }
 /*-----------------------------------------------------------*/

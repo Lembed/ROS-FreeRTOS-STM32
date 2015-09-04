@@ -26,6 +26,7 @@ float sign(float num)
     return num < 0 ? -1 : 1;
 }
 
+// Actuator model
 float wheelVelocityActuator(float v_old, float v_des)
 {
     float v_new, v_temp;
@@ -61,7 +62,8 @@ PID* pid;
 void speedSetterLoop()
 {
     float desiredVelocity;
-    os_printf("Distance: %d\n", (int)currentDistance);
+    // Set desired speed (thresholding)
+    //os_printf("Distance: %d\n", (int)currentDistance);
     if (currentDistance > MAX_DISTANCE)
     {
         desiredVelocity = CRUISE_SPEED;
@@ -72,11 +74,15 @@ void speedSetterLoop()
     }
 
     float newVelocity = 0.0f;
+    // PID, currentVelocity is the velocity "measured" one period earlier.
     pid->compute(desiredVelocity, currentVelocity, &newVelocity);
+
+    float tempVelocity = currentVelocity;
 
     currentVelocity = wheelVelocityActuator(currentVelocity, newVelocity);
 
-    os_printf("v: desired: %d, current: %d\n", (int)desiredVelocity, (int)(currentVelocity* 1000));
+    //os_printf("v: desired: %d, current: %d\n", (int)desiredVelocity, (int)(currentVelocity* 1000));
+    os_printf("%d,%d,%d\n", (int)(desiredVelocity*1000), (int)(currentVelocity* 1000), (int)(tempVelocity* 1000));
 }
 
 void speed_setter(void* p)
@@ -87,7 +93,8 @@ void speed_setter(void* p)
     // Subscribe to "chatter" topic.
     ros::Subscriber<Range>* sub = new ros::Subscriber<Range>(n, "ultrasound", distanceCallback);
 
-    float kp =0.15f, ki = 0.035f, kd =0.12f;
+    // PID parameters
+    float kp =0.45f, ki = 0.085f, kd =0.12f;
     pid = new PID(kp, ki, kd);
 
 	// Begin periodic loop with PUBLISH_PERIOD in milliseconds.

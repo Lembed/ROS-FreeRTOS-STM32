@@ -6,7 +6,7 @@
 #include "std_msgs/Int32.h"
 
 // Period in milliseconds
-#define PUBLISH_PERIOD 10
+#define PUBLISH_PERIOD 15
 
 using namespace std_msgs;
 using namespace ros;
@@ -15,7 +15,7 @@ Publisher* new_pub;
 void newLoop()
 {
     static int counter=0;
-    for (volatile int i = 0; i< 40000; i++);
+    for (volatile int i = 0; i< 30000; i++);
     Int32 msg;
     msg.data = counter++;
     new_pub->publish(msg);
