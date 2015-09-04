@@ -36,7 +36,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 
-
+include_directories(${PROJECT_SRC})
 include_directories(${PROJECT_SRC}/rcl/)
 include_directories(${PROJECT_SRC}/os/main/include/)
 include_directories(${PROJECT_SRC}/os/main/)

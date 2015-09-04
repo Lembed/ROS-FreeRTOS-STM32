@@ -1,3 +1,4 @@
+#include "device_config.h"
 #include "logger.h"
 #include "rcl.h"
 #include "Node.h"
@@ -40,7 +41,7 @@ void LOG(const char* fmt, ...)
 void logger(void* params)
 {
     // Register node in the ROS system.
-    ros::Node* n = new ros::Node("stm32_logger"); // TODO: Unique ID may need to be added later in case multiple STM32s will be connected to the same bus.
+    ros::Node* n = new ros::Node("stm32_logger_"ROS_NODE_UNIQUE_ID); // TODO: Unique ID may need to be added later in case multiple STM32s will be connected to the same bus.
     logger_pub = new ros::Publisher;
     logger_pub->advertise<String>(n, "logger");
 

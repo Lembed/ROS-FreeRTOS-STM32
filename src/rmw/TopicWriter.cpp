@@ -1,6 +1,8 @@
 #include "TopicWriter.h"
 #include "XMLRequest.h"
 #include "XMLRPCServer.h"
+#include "device_config.h"
+
 UDPHandler* UDPHandler::_instance = NULL;
 uint32_t UDPConnection::ID = 10000;
 
@@ -15,8 +17,8 @@ TopicWriter::TopicWriter(const char* callerID, const char* topic, const char* ms
 	lastConnectionsIndex = 0;
 	qHandle = xQueueCreate(QUEUE_LEN, QUEUE_MSG_SIZE);
 
-	XMLRequest* req = new RegisterRequest("registerPublisher", MASTER_URI, callerID, topic, msgType);
-	XMLRPCServer::sendRequest(req->getData(), 11311, connectSubscribers, this);
+	XMLRequest* req = new RegisterRequest("registerPublisher", ROS_MASTER_IP, callerID, topic, msgType);
+	XMLRPCServer::sendRequest(req->getData(), SERVER_PORT_NUM, connectSubscribers, this);
 }
 void TopicWriter::serializeMsg(const ros::Msg& msg, unsigned char* outbuffer)
 {
@@ -120,7 +122,8 @@ void TopicWriter::connectSubscribers(const void* obj, const char* data)
 				os_printf("URI: %s:::%d\n", ip, port);
 				//os_printf("URI: %s\n", uri);
 				// Check if this uri already exists in a "PublisherURIs" list.
-				if (strcmp(ip, "10.3.84.99"))  // TODO: replace this with a method to check if ip is not equal self ip
+
+				if (strcmp(ip, THIS_REMOTE_IP))  // TODO: replace this with a method to check if ip is not equal self ip
 				{
 					TopicWriter* self = (TopicWriter*) obj;
 					// TODO: Send publisher update to each remote subscriber

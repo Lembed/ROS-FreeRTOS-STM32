@@ -1,3 +1,4 @@
+#include "device_config.h"
 #include "speed_setter.h"
 #include "rcl.h"
 #include "Node.h"
@@ -88,12 +89,11 @@ void speedSetterLoop()
 void speed_setter(void* p)
 {
 	// Register node in the ROS system and create a publisher with imu topic.
-    Node* n = new Node("speed_setter");
+    Node* n = new Node("speed_setter"ROS_NODE_UNIQUE_ID);
 
     // Subscribe to "chatter" topic.
     ros::Subscriber<Range>* sub = new ros::Subscriber<Range>(n, "ultrasound", distanceCallback);
 
-    // PID parameters
     float kp =0.45f, ki = 0.085f, kd =0.12f;
     pid = new PID(kp, ki, kd);
 
