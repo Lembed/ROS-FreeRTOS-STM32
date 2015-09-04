@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "device_config.h"
 #define XMLRPC_PORT 40000
 
 static const char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -100,7 +101,10 @@ public:
 		strcat(xml, "</value> </param> <param> <value>");
 		char portStr[6];
 		sprintf(portStr, "%d", XMLRPC_PORT);
-		strcat(xml, "http://10.3.84.99:");
+
+		strcat(xml, "http://");
+		strcat(xml, THIS_REMOTE_IP);
+		strcat(xml, ":");
 		strcat(xml, portStr);
 		strcat(xml, "</value> </param> </param> </params> </methodCall>");
 
@@ -167,7 +171,9 @@ public:
 
 		strcat(xml, base64);
 
-		strcat(xml, "</base64></value><value>10.3.84.99</value><value><i4>44100</i4></value><value><i4>300</i4></value></data></array></value></data></array></value></param></params></methodCall>");
+		strcat(xml, "</base64></value><value>");
+		strcat(xml, THIS_REMOTE_IP);
+		strcat(xml, "</value><value><i4>44100</i4></value><value><i4>300</i4></value></data></array></value></data></array></value></param></params></methodCall>");
 
 		createRequestHeader(uri, strlen(xml), header);
 

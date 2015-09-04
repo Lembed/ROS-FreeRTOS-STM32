@@ -9,7 +9,7 @@ set(CMAKE_SYSTEM_PROCESSOR arm-eabi)
 
 # Default toolchain path
 #set(TOOLCHAIN_PATH "/opt/CodeSourcery/arm-2011.09/bin/")
-set(TOOLCHAIN_PATH "")
+set(TOOLCHAIN_PATH "../../stm32-tools/CodeSourcery/arm-2011.09/bin/")
 
 # which compilers to use for C and C++
 set(CMAKE_C_COMPILER       ${TOOLCHAIN_PATH}arm-none-eabi-gcc)
@@ -36,7 +36,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 
-
+include_directories(${PROJECT_SRC})
 include_directories(${PROJECT_SRC}/rcl/)
 include_directories(${PROJECT_SRC}/os/main/include/)
 include_directories(${PROJECT_SRC}/os/main/)

@@ -102,8 +102,6 @@ public:
 
 #define UDP_LOCAL_PORT 46552
 
-#define MASTER_URI "10.3.84.100:11311"
-
 class TopicWriter
 {
 	char topic[MAX_TOPIC_LEN];

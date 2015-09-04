@@ -48,6 +48,7 @@
 #include "netconf.h"
 #include "tcpip.h"
 #include "Shell.h"
+#include "device_config.h"
 
 #include <stdio.h>
 
@@ -91,14 +92,14 @@ void LwIP_Init(void)
   netmask.addr = 0;
   gw.addr = 0;
 #else
-  IP4_ADDR(&ipaddr, IP_ADDR0, IP_ADDR1, IP_ADDR2, IP_ADDR3);
+  IP4_ADDR(&ipaddr, THIS_REMOTE_IP_ADDR0, THIS_REMOTE_IP_ADDR1, THIS_REMOTE_IP_ADDR2, THIS_REMOTE_IP_ADDR3);
   IP4_ADDR(&netmask, NETMASK_ADDR0, NETMASK_ADDR1 , NETMASK_ADDR2, NETMASK_ADDR3);
   IP4_ADDR(&gw, GW_ADDR0, GW_ADDR1, GW_ADDR2, GW_ADDR3);
 #ifdef USE_LCD
-  iptab[0] = IP_ADDR3;
-  iptab[1] = IP_ADDR2;
-  iptab[2] = IP_ADDR1;
-  iptab[3] = IP_ADDR0;
+  iptab[0] = THIS_REMOTE_IP_ADDR3;
+  iptab[1] = THIS_REMOTE_IP_ADDR2;
+  iptab[2] = THIS_REMOTE_IP_ADDR1;
+  iptab[3] = THIS_REMOTE_IP_ADDR0;
 
  // sprintf((char*)iptxt, "  %d.%d.%d.%d", iptab[3], iptab[2], iptab[1], iptab[0]);
   //ShellPrintf("\r\n Static IP address =  %d.%d.%d.%d\r\n", iptab[3], iptab[2], iptab[1], iptab[0]);
@@ -210,7 +211,7 @@ void LwIP_DHCP_task(void * pvParameters)
             dhcp_stop(&xnetif);
 
             /* Static address used */
-            IP4_ADDR(&ipaddr, IP_ADDR0 ,IP_ADDR1 , IP_ADDR2 , IP_ADDR3 );
+            IP4_ADDR(&ipaddr, THIS_REMOTE_IP_ADDR0 ,THIS_REMOTE_IP_ADDR1 , THIS_REMOTE_IP_ADDR2 , THIS_REMOTE_IP_ADDR3 );
             IP4_ADDR(&netmask, NETMASK_ADDR0, NETMASK_ADDR1, NETMASK_ADDR2, NETMASK_ADDR3);
             IP4_ADDR(&gw, GW_ADDR0, GW_ADDR1, GW_ADDR2, GW_ADDR3);
             netif_set_addr(&xnetif, &ipaddr , &netmask, &gw);
@@ -219,10 +220,10 @@ void LwIP_DHCP_task(void * pvParameters)
 //            LCD_DisplayStringLine(Line7, (uint8_t*)"    DHCP timeout    ");
             ShellPrintf("\r\n DHCP timeout \r\n");
 
-            iptab[0] = IP_ADDR3;
-            iptab[1] = IP_ADDR2;
-            iptab[2] = IP_ADDR1;
-            iptab[3] = IP_ADDR0;
+            iptab[0] = THIS_REMOTE_IP_ADDR3;
+            iptab[1] = THIS_REMOTE_IP_ADDR2;
+            iptab[2] = THIS_REMOTE_IP_ADDR1;
+            iptab[3] = THIS_REMOTE_IP_ADDR0;
 
             //sprintf((char*)iptxt, "  %d.%d.%d.%d", iptab[3], iptab[2], iptab[1], iptab[0]);
 
