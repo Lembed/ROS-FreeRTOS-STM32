@@ -123,7 +123,7 @@ void TopicWriter::connectSubscribers(const void* obj, const char* data)
 				//os_printf("URI: %s\n", uri);
 				// Check if this uri already exists in a "PublisherURIs" list.
 
-				if (strcmp(ip, THIS_REMOTE_IP))  // TODO: replace this with a method to check if ip is not equal self ip
+				if (strcmp(ip, IP_ADDR))  // TODO: replace this with a method to check if ip is not equal self ip
 				{
 					TopicWriter* self = (TopicWriter*) obj;
 					// TODO: Send publisher update to each remote subscriber
