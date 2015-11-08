@@ -103,7 +103,7 @@ public:
 		sprintf(portStr, "%d", XMLRPC_PORT);
 
 		strcat(xml, "http://");
-		strcat(xml, THIS_REMOTE_IP);
+		strcat(xml, IP_ADDR);
 		strcat(xml, ":");
 		strcat(xml, portStr);
 		strcat(xml, "</value> </param> </param> </params> </methodCall>");
@@ -172,7 +172,7 @@ public:
 		strcat(xml, base64);
 
 		strcat(xml, "</base64></value><value>");
-		strcat(xml, THIS_REMOTE_IP);
+		strcat(xml, IP_ADDR);
 		strcat(xml, "</value><value><i4>44100</i4></value><value><i4>300</i4></value></data></array></value></data></array></value></param></params></methodCall>");
 
 		createRequestHeader(uri, strlen(xml), header);

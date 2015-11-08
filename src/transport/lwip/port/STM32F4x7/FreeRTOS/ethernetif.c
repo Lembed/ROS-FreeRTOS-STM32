@@ -52,6 +52,7 @@
 #include "err.h"
 #include "ethernetif.h"
 
+#include "device_config.h"
 #include "main.h"
 #include "stm32f4x7_eth.h"
 #include <string.h>
