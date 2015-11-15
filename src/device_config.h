@@ -28,8 +28,8 @@
 /* GATEWAY ADDRESS */
 #define GW_ADDR0   192
 #define GW_ADDR1   168
-#define GW_ADDR2   0
-#define GW_ADDR3   1
+#define GW_ADDR2   1
+#define GW_ADDR3   100
 
 
 /* ROS NODE IDENTIFIER FOR THIS DEVICE */

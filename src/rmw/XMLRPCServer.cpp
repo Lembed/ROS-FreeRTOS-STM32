@@ -296,7 +296,7 @@ void XMLRPCServer::UDPSend(void* params)
     pinMode(GPIO_PD11, OUTPUT);
     UDPMessage msg;
     struct ip_addr ip;
-    ip.addr = inet_addr("10.3.84.100");
+    ip.addr = inet_addr(ROS_MASTER_IP);
     for(;;)
     {
         //digitalWrite(GPIO_PD11, HIGH);
