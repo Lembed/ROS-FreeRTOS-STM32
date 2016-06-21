@@ -107,6 +107,3 @@ void ultrasonic_sensor(void* params)
 }
 ```
 
-## How to Setup
-
-A tutorial on how to set up the system is given <a href="https://github.com/bosch-ros-pkg/stm32/wiki">here</a>.
