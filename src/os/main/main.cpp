@@ -51,14 +51,14 @@ extern "C"
 void led_task(void* p)
 {
 	pinMode(GPIO_PD12, OUTPUT);
-	for( ;; ) {
-			// toggle LED4 each 250ms
-	        //STM_EVAL_LEDToggle(LED4);
-			digitalWrite(GPIO_PD12, HIGH);
-	        vTaskDelay(250);
-			digitalWrite(GPIO_PD12, LOW);
-	        vTaskDelay(250);
-	      }
+	for ( ;; ) {
+		// toggle LED4 each 250ms
+		//STM_EVAL_LEDToggle(LED4);
+		digitalWrite(GPIO_PD12, HIGH);
+		vTaskDelay(250);
+		digitalWrite(GPIO_PD12, LOW);
+		vTaskDelay(250);
+	}
 }
 
 /*-----------------------------------------------*/
@@ -66,23 +66,23 @@ void led_task(void* p)
 /*-----------------------------------------------*/
 extern "C" void MainTask(void* args)
 {
-    /* configure Ethernet (GPIOs, clocks, MAC, DMA) */
-    ETH_BSP_Config();
+	/* configure Ethernet (GPIOs, clocks, MAC, DMA) */
+	ETH_BSP_Config();
 
-    /* Initialize the LwIP stack */
+	/* Initialize the LwIP stack */
 	LwIP_Init();
 
-    pinMode(GPIO_PD1, OUTPUT);
-    pinMode(GPIO_PD2, OUTPUT);
-    pinMode(GPIO_PD3, OUTPUT);
-    pinMode(GPIO_PD4, OUTPUT);
-    pinMode(GPIO_PD5, OUTPUT);
-    pinMode(GPIO_PD6, OUTPUT);
+	pinMode(GPIO_PD1, OUTPUT);
+	pinMode(GPIO_PD2, OUTPUT);
+	pinMode(GPIO_PD3, OUTPUT);
+	pinMode(GPIO_PD4, OUTPUT);
+	pinMode(GPIO_PD5, OUTPUT);
+	pinMode(GPIO_PD6, OUTPUT);
 
-    xTaskCreate(ros_main, (const signed char*)"ROSMain", 128, NULL, 2, NULL);
+	xTaskCreate(ros_main, (const signed char*)"ROSMain", 128, NULL, 2, NULL);
 	xTaskCreate(led_task, (const signed char*)"LedTask", 128, NULL, 2, NULL);
 
-    vTaskDelete(NULL);
+	vTaskDelete(NULL);
 }
 
 #define USART_BAUD_RATE 9600
@@ -110,7 +110,7 @@ void vApplicationMallocFailedHook( void )
 	to query the size of free heap space that remains (although it does not
 	provide information on how the remaining heap might be fragmented). */
 	taskDISABLE_INTERRUPTS();
-	for( ;; );
+	for ( ;; );
 }
 /*-----------------------------------------------------------*/
 extern "C"
@@ -137,6 +137,6 @@ void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName 
 	configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
 	function is called if a stack overflow is detected. */
 	taskDISABLE_INTERRUPTS();
-	for( ;; );
+	for ( ;; );
 }
 

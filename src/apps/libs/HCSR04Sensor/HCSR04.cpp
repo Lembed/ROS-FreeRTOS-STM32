@@ -34,17 +34,13 @@ extern "C"
 void EXTI0_IRQHandler(void)
 {
 	long taskWoken = 0;
-	if (EXTI_GetITStatus(EXTI_Line0) != RESET)
-	{
+	if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
 		bool isRisingEdge = digitalRead(GPIO_PA0);
 		//digitalWrite(GPIO_PD11, isRisingEdge);
 
-		if (isRisingEdge)
-		{
+		if (isRisingEdge) {
 			lastMicros = micros();
-		}
-		else
-		{
+		} else {
 			ultrasound_duration =  micros() - lastMicros;
 
 			if (ultrasound_duration > MAX_ULTRASOUND_DURATION_US)
@@ -52,7 +48,7 @@ void EXTI0_IRQHandler(void)
 			xSemaphoreGiveFromISR(sensorReadSignal, &taskWoken);
 		}
 
-	    EXTI_ClearITPendingBit(EXTI_Line0);
+		EXTI_ClearITPendingBit(EXTI_Line0);
 	}
 	if (taskWoken)
 		vPortYieldFromISR();
@@ -76,8 +72,7 @@ float HCSR04::ping()
 	taskENABLE_INTERRUPTS();
 	float distance = NO_ECHO;
 	// TODO: Depending on the period, this might cause extra delays!
-	if (xSemaphoreTake(sensorReadSignal, MAX_ULTRASOUND_DURATION_MS))
-	{
+	if (xSemaphoreTake(sensorReadSignal, MAX_ULTRASOUND_DURATION_MS))	{
 		// Get distance in us and convert us to cm
 		distance =  (float)ultrasound_duration * HCSR04_NUMBER;
 	}
@@ -94,12 +89,13 @@ float HCSR04::ping()
 
 
 #define PING_MEDIAN_PERIOD 40
-float HCSR04::pingMedian(uint8_t it) {
+float HCSR04::pingMedian(uint8_t it)
+{
 	float uS[it], last;
 	uint8_t j, i = 0;
 	unsigned long t;
 	uS[0] = NO_ECHO;
-	portTickType xLastWakeTime=xTaskGetTickCount();
+	portTickType xLastWakeTime = xTaskGetTickCount();
 	while (i < it) {
 		last = ping(); // Send ping.
 

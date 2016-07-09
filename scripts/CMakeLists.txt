@@ -18,13 +18,13 @@ set(CMAKE_ASM_COMPILER     ${TOOLCHAIN_PATH}arm-none-eabi-as)
 set(CMAKE_OBJCOPY     	   ${TOOLCHAIN_PATH}arm-none-eabi-objcopy)
 set(CMAKE_OBJDUMP     	   ${TOOLCHAIN_PATH}arm-none-eabi-objdump)
 
-set (PROJECT_SRC "${CMAKE_SOURCE_DIR}/src")
+set (PROJECT_SRC "${CMAKE_SOURCE_DIR}/../src")
 
 SET(CMAKE_C_FLAGS "-mthumb -mcpu=cortex-m4 -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -O3 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wextra  -g -DOS_USE_TRACE_ITM -DSTM32F407xx -DUSE_HAL_DRIVER -DHSE_VALUE=8000000 -std=gnu99  -nostartfiles " CACHE INTERNAL "c compiler flags" FORCE)
 SET(CMAKE_CXX_FLAGS "-mcpu=cortex-m4 -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -O3 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wextra  -g -DOS_USE_TRACE_ITM -DSTM32F407xx -DUSE_HAL_DRIVER -DHSE_VALUE=8000000 -std=gnu++0x -fabi-version=6 -fno-exceptions -fno-rtti -fno-use-cxa-atexit -fno-threadsafe-statics -nostdinc++  -nostartfiles " CACHE INTERNAL "cxx compiler flags" FORCE)
 SET(CMAKE_ASM_FLAGS "-mthumb -mcpu=cortex-m4" CACHE INTERNAL "asm compiler flags" FORCE)
 
-SET(CMAKE_EXE_LINKER_FLAGS "-mcpu=cortex-m4 -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -O3 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wextra  -g -Xlinker --gc-sections -T${PROJECT_SRC}/ldscripts/libs.ld -T${PROJECT_SRC}/ldscripts/mem.ld -T${PROJECT_SRC}/ldscripts/sections.ld  -nostartfiles" CACHE INTERNAL "exe link flags")
+SET(CMAKE_EXE_LINKER_FLAGS "-mcpu=cortex-m4 -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -O3 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wextra  -g -Xlinker --gc-sections -T${PROJECT_SRC}/bsp/ldscripts/libs.ld -T${PROJECT_SRC}/bsp/ldscripts/mem.ld -T${PROJECT_SRC}/bsp/ldscripts/sections.ld  -nostartfiles" CACHE INTERNAL "exe link flags")
 
 
 # adjust the default behaviour of the FIND_XXX() commands:
