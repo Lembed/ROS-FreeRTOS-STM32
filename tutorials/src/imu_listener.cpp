@@ -35,10 +35,10 @@
 // %Tag(CALLBACK)%
 void chatterCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
-  ROS_INFO("Acc_x: %f Acc_y: %f Acc_z: %f ### Gyro_x: %f Gyro_y: %f Gyro_z: %f", 
-    msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z,
-    msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z
-    );
+  ROS_INFO("Acc_x: %f Acc_y: %f Acc_z: %f ### Gyro_x: %f Gyro_y: %f Gyro_z: %f",
+           msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z,
+           msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z
+          );
 }
 // %EndTag(CALLBACK)%
 

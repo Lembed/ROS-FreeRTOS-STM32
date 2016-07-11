@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(FreeRTOS C CXX)
+project(eROS C CXX)
 
 
 # the name of the target operating system
@@ -37,36 +37,39 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 
 include_directories(${PROJECT_SRC})
-include_directories(${PROJECT_SRC}/rcl/)
-include_directories(${PROJECT_SRC}/os/main/include/)
-include_directories(${PROJECT_SRC}/os/main/)
-include_directories(${PROJECT_SRC}/rmw/)
+include_directories(${PROJECT_SRC}/main/include/)
+include_directories(${PROJECT_SRC}/main/)
+include_directories(${PROJECT_SRC}/core/rcl/)
+include_directories(${PROJECT_SRC}/core/rmw/)
 include_directories(${PROJECT_SRC}/apps/)
-include_directories(${PROJECT_SRC}/bsp/drivers/inc/)
-include_directories(${PROJECT_SRC}/bsp/core/CPU/startup/)
-include_directories(${PROJECT_SRC}/bsp/net/Ethernet/)
-include_directories(${PROJECT_SRC}/bsp/net/net/)
-include_directories(${PROJECT_SRC}/bsp/net/Shell/)
-include_directories(${PROJECT_SRC}/bsp/net/STM32F4x7_ETH_Driver/inc/)
-include_directories(${PROJECT_SRC}/os/kernel/include/)
-include_directories(${PROJECT_SRC}/os/syslibs/math/Include/)
-include_directories(${PROJECT_SRC}/os/kernel/portable/GCC/ARM_CM4F/)
-include_directories(${PROJECT_SRC}/transport/lwip/src/include/)
-include_directories(${PROJECT_SRC}/transport/lwip/src/include/ipv4/)
-include_directories(${PROJECT_SRC}/transport/lwip/port/STM32F4x7//)
-include_directories(${PROJECT_SRC}/transport/lwip/src/include/lwip/)
-include_directories(${PROJECT_SRC}/transport/lwip/port/STM32F4x7/FreeRTOS/)
-include_directories(${PROJECT_SRC}/transport/)
-include_directories(${PROJECT_SRC}/apps/libs/)
+
+include_directories(${PROJECT_SRC}/board/)
+include_directories(${PROJECT_SRC}/board/drivers/inc/)
+include_directories(${PROJECT_SRC}/board/core/CPU/startup/)
+include_directories(${PROJECT_SRC}/board/net/Ethernet/)
+include_directories(${PROJECT_SRC}/board/net/net/)
+include_directories(${PROJECT_SRC}/board/net/Shell/)
+include_directories(${PROJECT_SRC}/board/net/STM32F4x7_ETH_Driver/inc/)
+
+include_directories(${PROJECT_SRC}/core/lwip/src/include/)
+include_directories(${PROJECT_SRC}/core/lwip/src/include/ipv4/)
+include_directories(${PROJECT_SRC}/core/lwip/port/STM32F4x7//)
+include_directories(${PROJECT_SRC}/core/lwip/src/include/lwip/)
+include_directories(${PROJECT_SRC}/core/lwip/port/STM32F4x7/FreeRTOS/)
+
+include_directories(${PROJECT_SRC}/core/os/kernel/include/)
+include_directories(${PROJECT_SRC}/core/os/syslibs/math/Include/)
+include_directories(${PROJECT_SRC}/core/os/kernel/portable/GCC/ARM_CM4F/)
+include_directories(${PROJECT_SRC}/device/)
 
 
 # Linker flags
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")   # remove -rdynamic for C
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "") # remove -rdynamic for CXX
 
-set(ELF_FILE "FreeRTOS.elf")
-set(HEX_FILE "FreeRTOS.hex")
-set(BIN_FILE "FreeRTOS.bin")
+set(ELF_FILE "eROS.elf")
+set(HEX_FILE "eROS.hex")
+set(BIN_FILE "eROS.bin")
 
 # get all *.cpp files recursively
 file(GLOB_RECURSE CXX_FILES ${PROJECT_SRC}/*.cpp)
@@ -80,11 +83,11 @@ add_executable(${ELF_FILE} ${CXX_FILES} ${C_FILES} ${H_FILES})
 
 ADD_CUSTOM_COMMAND(TARGET ${ELF_FILE}
           POST_BUILD
-			COMMAND ${CMAKE_OBJCOPY} -Oihex FreeRTOS.elf ${HEX_FILE})
+			COMMAND ${CMAKE_OBJCOPY} -Oihex eROS.elf ${HEX_FILE})
 
 ADD_CUSTOM_COMMAND(TARGET ${ELF_FILE}
           POST_BUILD
-			COMMAND ${CMAKE_OBJCOPY} -Obinary FreeRTOS.elf ${BIN_FILE})
+			COMMAND ${CMAKE_OBJCOPY} -Obinary eROS.elf ${BIN_FILE})
 
 set(STLINK_CMD st-flash write ${BIN_FILE} 0x8000000)
 add_custom_target(flash DEPENDS ${ELF_FILE} COMMAND ${STLINK_CMD})
