@@ -81,46 +81,46 @@ void MPU6050::readIMU(IMU* data)
 
 void MPU6050::calibrateSensor()
 {
-	  int                   num_readings = 10;
-	  float                 x_accel = 0;
-	  float                 y_accel = 0;
-	  float                 z_accel = 0;
-	  float                 x_gyro = 0;
-	  float                 y_gyro = 0;
-	  float                 z_gyro = 0;
-	  IMU data;
+	int                   num_readings = 10;
+	float                 x_accel = 0;
+	float                 y_accel = 0;
+	float                 z_accel = 0;
+	float                 x_gyro = 0;
+	float                 y_gyro = 0;
+	float                 z_gyro = 0;
+	IMU data;
 
-	  os_printf("Starting Calibration\n");
-	  // Give MPU6050 time to initialize.
-	  vTaskDelay(200);
-	  // Discard the first set of values read from the IMU
-	  readIMU(&data);
+	os_printf("Starting Calibration\n");
+	// Give MPU6050 time to initialize.
+	vTaskDelay(200);
+	// Discard the first set of values read from the IMU
+	readIMU(&data);
 
-	  // Read and average the raw values from the IMU
-	  for (int i = 0; i < num_readings; i++) {
-		  readIMU(&data);
-	    x_accel += data.x_accel;
-	    y_accel += data.y_accel;
-	    z_accel += data.z_accel;
-	    x_gyro += data.x_gyro;
-	    y_gyro += data.y_gyro;
-	    z_gyro += data.z_gyro;
-	    vTaskDelay(100);
-	  }
-	  x_accel /= num_readings;
-	  y_accel /= num_readings;
-	  z_accel /= num_readings;
-	  x_gyro /= num_readings;
-	  y_gyro /= num_readings;
-	  z_gyro /= num_readings;
+	// Read and average the raw values from the IMU
+	for (int i = 0; i < num_readings; i++) {
+		readIMU(&data);
+		x_accel += data.x_accel;
+		y_accel += data.y_accel;
+		z_accel += data.z_accel;
+		x_gyro += data.x_gyro;
+		y_gyro += data.y_gyro;
+		z_gyro += data.z_gyro;
+		vTaskDelay(100);
+	}
+	x_accel /= num_readings;
+	y_accel /= num_readings;
+	z_accel /= num_readings;
+	x_gyro /= num_readings;
+	y_gyro /= num_readings;
+	z_gyro /= num_readings;
 
-	  // Store the raw calibration values globally
-	  base_x_accel = x_accel;
-	  base_y_accel = y_accel;
-	  base_z_accel = z_accel;
-	  base_x_gyro = x_gyro;
-	  base_y_gyro = y_gyro;
-	  base_z_gyro = z_gyro;
+	// Store the raw calibration values globally
+	base_x_accel = x_accel;
+	base_y_accel = y_accel;
+	base_z_accel = z_accel;
+	base_x_gyro = x_gyro;
+	base_y_gyro = y_gyro;
+	base_z_gyro = z_gyro;
 
-	  os_printf("Finishing Calibration\n");
+	os_printf("Finishing Calibration\n");
 }

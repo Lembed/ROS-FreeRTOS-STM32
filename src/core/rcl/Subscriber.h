@@ -1,4 +1,4 @@
-/* 
+/*
  * Software License Agreement (BSD License)
  *
  * Copyright (c) 2011, Willow Garage, Inc.
@@ -43,64 +43,66 @@
 
 // TODO: Why does STM32 crash if max_subscribers>=20? Not enough memory?
 #define MAX_SUBSCRIBERS 10
-namespace ros {
+namespace ros
+{
 
-  /* Base class for objects subscribers. */
-  class Subscriber_
+/* Base class for objects subscribers. */
+class Subscriber_
+{
+public:
+  //virtual void callback()=0;
+
+  virtual void deserialize(unsigned char *data) = 0;
+  // id_ is set by NodeHandle when we advertise
+  int id_;
+
+  virtual const char * getMsgType() = 0;
+  virtual const char * getMsgMD5() = 0;
+  const char * topic;
+  static Subscriber_** list;
+  static int lastSubscriberIndex;
+};
+
+
+/* Actual subscriber, templated on message type. */
+template<typename MsgT>
+class Subscriber: public Subscriber_
+{
+public:
+  typedef void(*CallbackT)(const MsgT&);
+  MsgT msg;
+
+  Subscriber(Node* node, const char * topic_name, CallbackT cb) :
+    cb_(cb)
   {
-    public:
-      //virtual void callback()=0;
+    char taskName[32];
+    topic = topic_name;
+    list[++lastSubscriberIndex] = this;
 
-      virtual void deserialize(unsigned char *data)=0;
-      // id_ is set by NodeHandle when we advertise 
-      int id_;
-
-      virtual const char * getMsgType()=0;
-      virtual const char * getMsgMD5()=0;
-      const char * topic;
-      static Subscriber_** list;
-      static int lastSubscriberIndex;
+    TopicReader* tr = XMLRPCServer::registerSubscriber(node->name, topic, msg.getMD5(), msg.getType());
+    this->callback = cb;
+    tr->addCallback(subCallback, this);
   };
 
+  static void subCallback(void* data, void* obj)
+  {
+    Subscriber* self = (Subscriber*) obj;
+    MsgT msg;
+    msg.deserialize((unsigned char*)data);
+    self->callback(msg);
+  }
 
-  /* Actual subscriber, templated on message type. */
-  template<typename MsgT>
-  class Subscriber: public Subscriber_{
-    public:
-      typedef void(*CallbackT)(const MsgT&);
-      MsgT msg;
+  virtual void deserialize(unsigned char* data)
+  {
+    msg.deserialize(data);
+  }
+  void(*callback)(const MsgT& msg);
+  virtual const char * getMsgType() { return this->msg.getType(); }
+  virtual const char * getMsgMD5() { return this->msg.getMD5(); }
 
-      Subscriber(Node* node, const char * topic_name, CallbackT cb) :
-        cb_(cb)
-      {
-    	  char taskName[32];
-    	  topic = topic_name;
-    	  list[++lastSubscriberIndex] = this;
-
-  		TopicReader* tr = XMLRPCServer::registerSubscriber(node->name, topic, msg.getMD5(), msg.getType());
-  		this->callback = cb;
-  		tr->addCallback(subCallback, this);
-      };
-
-  	static void subCallback(void* data, void* obj)
-  	{
-  		Subscriber* self = (Subscriber*) obj;
-  		MsgT msg;
-  		msg.deserialize((unsigned char*)data);
-  		self->callback(msg);
-  	}
-
-      virtual void deserialize(unsigned char* data)
-      {
-    	  msg.deserialize(data);
-      }
-      void(*callback)(const MsgT& msg);
-      virtual const char * getMsgType(){ return this->msg.getType(); }
-      virtual const char * getMsgMD5(){ return this->msg.getMD5(); }
-
-    private:
-      CallbackT cb_;
-  };
+private:
+  CallbackT cb_;
+};
 
 }
 
